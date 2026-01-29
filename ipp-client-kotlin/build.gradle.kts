@@ -79,19 +79,19 @@ publishing {
                 from(components["release"])
                 groupId = "com.github.lingrong000"
                 artifactId = "ipp-client-kotlin"
-                version = "1.0.0"
+                version = "v1.0.6"
             }
         }
 
         // debug variant publication（如果你确实需要在仓库中同时发布 debug 版本）
-        register<MavenPublication>("debug") {
-            afterEvaluate {
-                from(components["debug"])
-                groupId = "com.github.lingrong000"
-                artifactId = "ipp-client-kotlin-debug"
-                version = "1.0.0-debug"
-            }
-        }
+//        register<MavenPublication>("debug") {
+//            afterEvaluate {
+//                from(components["debug"])
+//                groupId = "com.github.lingrong000"
+//                artifactId = "ipp-client-kotlin-debug"
+//                version = "1.0.0-debug"
+//            }
+//        }
     }
 
     repositories {
