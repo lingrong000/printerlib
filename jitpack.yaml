@@ -1,0 +1,15 @@
+# 放在仓库根目录
+jdk:
+  - openjdk17
+before_install:
+  - sdk install java 17.0.9-tem
+  - sdk use java 17.0.9-tem
+  - chmod +x gradlew
+
+install:
+  - ./gradlew :printer:install # 明确指定安装 printer 模块
+
+# 如果需要同时发布多个模块
+# additional_files:
+#   - ipp-client-kotlin/build/outputs/aar/*.aar
+#   - printer/build/outputs/aar/*.aar
