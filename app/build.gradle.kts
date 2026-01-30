@@ -45,7 +45,7 @@ dependencies {
 //    implementation("org.snmp4j:snmp4j:3.9.6")
 //    implementation("com.tom-roush:pdfbox-android:2.0.27.0")
 //    implementation("com.github.lingrong000:printerlib:8048530")
-//    implementation("com.github.lingrong000.printerlib:printer:v1.0.7")
+//    implementation("com.github.lingrong000:printerlib:v1.1.0")
 //    implementation("com.github.lingrong000.printerlib:ipp-client-kotlin:v1.0.7")
 //    implementation("com.github.lingrong000:printerlib:2206127")
     testImplementation(libs.junit)

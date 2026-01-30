@@ -110,20 +110,19 @@ object IppRegistrationsSection2 {
     fun attributeIs1setOf(name: String) =
         getAttribute(name, false)?.is1setOf()
 
-    fun selectGroupForAttribute(name: String) =
-        getAttribute(name, false)?.collectionGroupTag().also {
+    fun selectGroupForAttribute(name: String) = 
+        getAttribute(name, false)?.collectionGroupTag()?.let { csvGroup ->
             // Also lookup via hard coded list. In the future I might remove the rather large csv files.
             val groupTagWithoutCSV = if (attributesForGroupOperation.contains(name)) Operation else Job
-            if (it != groupTagWithoutCSV) StringBuilder().run {
+            if (csvGroup != groupTagWithoutCSV) {
                 if(name !in listOf("output-mode")) {
-                    append("Incorrect attribute group for attribute '$name': is $groupTagWithoutCSV, expected $it.")
+                    throw IppException("Incorrect attribute group for attribute '$name': is $groupTagWithoutCSV, expected $csvGroup. This should to be fixed in IppRegistrationSection2.attributesForGroupOperation!")
                 }
-                it?.run {
-                    append(" This should to be fixed in IppRegistrationSection2.attributesForGroupOperation!")
-                    append(" Please open a bug ticket on https://github.com/gmuth/ipp-client-kotlin/issues.")
-                }
-                throw IppException(toString())
             }
+            csvGroup
+        } ?: run {
+            // If no CSV entry found, use hard coded list
+            if (attributesForGroupOperation.contains(name)) Operation else Job
         }
 
     val unknownAttributes = mutableSetOf<String>()
