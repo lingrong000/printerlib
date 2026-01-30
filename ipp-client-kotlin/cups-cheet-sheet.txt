@@ -1,2 +1,0 @@
-# unable to connect to localhost:631 ?
-cupsctl WebInterface=yes
