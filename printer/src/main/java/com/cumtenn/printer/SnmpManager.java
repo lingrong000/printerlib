@@ -42,6 +42,9 @@ public class SnmpManager {
     public static final String CANCEL_JOB = "CANCEL_JOB";           // 取消打印作业
     public static final String OUT_OF_PAPER = "OUT_OF_PAPER";       // 是否缺纸
 
+    public static final int SNMP_V1 = 0;
+    public static final int SNMP_V2C = 1;
+    public static final int SNMP_V3 = 3;
 
     public interface SnmpCallback {
         void onSuccess(@NonNull String result);
@@ -70,6 +73,8 @@ public class SnmpManager {
     private volatile int port = 161;
     private volatile int timeout = 2000;
     private volatile int retries = 2;
+
+    private volatile int version = SNMP_V2C;
 
     public static final Map<String, String> OID_MAP;
     static {
@@ -115,6 +120,10 @@ public class SnmpManager {
         this.retries = retries;
     }
 
+    public void setVersion(int version) {
+        this.version = version;
+    }
+
     public void getByOid(@NonNull final String oid, @NonNull final SnmpCallback callback) {
         if (!isIpAddressValid(ip)) {
             callback.onError("invalid ip: " + ip);
@@ -123,7 +132,7 @@ public class SnmpManager {
 
         executor.execute(() -> {
             try {
-                String res = performSnmpGet(ip, port, community, oid, timeout, retries);
+                String res = performSnmpGet(oid);
                 callback.onSuccess(res);
             } catch (Exception e) {
                 callback.onError(e.toString());
@@ -148,22 +157,26 @@ public class SnmpManager {
         executor.shutdownNow();
     }
 
-    private String performSnmpGet(String address, int port, String community,
-                                  String oidStr, int timeoutMs, int retries) throws IOException {
-        TransportMapping<?> transport = null;
-        Snmp snmp = null;
-        try {
-            String addr = "udp:" + address + "/" + port;
-            transport = new DefaultUdpTransportMapping();
-            snmp = new Snmp(transport);
+    private String performSnmpGet(String oidStr) throws IOException {
+        // 参数验证
+        if (oidStr == null || oidStr.isEmpty()) {
+            throw new IllegalArgumentException("OID cannot be null or empty");
+        }
+        if (ip == null || ip.isEmpty()) {
+            throw new IllegalArgumentException("IP address not set");
+        }
+
+        try (DefaultUdpTransportMapping transport = new DefaultUdpTransportMapping();
+             Snmp snmp = new Snmp(transport)) {
+            String addr = "udp:" + ip + "/" + port;
             transport.listen();
 
             CommunityTarget target = new CommunityTarget();
             target.setCommunity(new OctetString(community));
             target.setAddress(GenericAddress.parse(addr));
             target.setRetries(retries);
-            target.setTimeout(timeoutMs);
-            target.setVersion(SnmpConstants.version2c);
+            target.setTimeout(timeout);
+            target.setVersion(version);
 
             PDU pdu = new PDU();
             pdu.add(new VariableBinding(new OID(oidStr)));
@@ -176,15 +189,14 @@ public class SnmpManager {
             } else {
                 throw new IOException("No response (timeout) or empty PDU");
             }
-        } finally {
-            try {
-                if (snmp != null) snmp.close();
-            } catch (Exception ignored) {
-            }
-            try {
-                if (transport != null) transport.close();
-            } catch (Exception ignored) {
-            }
+        } catch (IllegalArgumentException e) {
+            throw e; // 直接抛出参数异常
+        } catch (IOException e) {
+            // 重新包装IO异常，添加更详细的信息
+            throw new IOException("SNMP communication error: " + e.getMessage(), e);
+        } catch (Exception e) {
+            // 捕获其他异常，转换为IO异常
+            throw new IOException("SNMP operation failed: " + e.getMessage(), e);
         }
     }
 }

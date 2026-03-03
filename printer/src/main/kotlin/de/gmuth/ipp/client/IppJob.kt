@@ -7,6 +7,7 @@ package de.gmuth.ipp.client
 import de.gmuth.ipp.attributes.DocumentFormat
 import de.gmuth.ipp.attributes.JobState
 import de.gmuth.ipp.attributes.JobState.*
+import de.gmuth.ipp.attributes.PrinterState
 import de.gmuth.ipp.core.*
 import de.gmuth.ipp.core.IppOperation.*
 import de.gmuth.ipp.core.IppStatus.SuccessfulOk
@@ -181,38 +182,52 @@ class IppJob(
     // Wait for terminal state (RFC 8011 5.3.7.)
     //------------------------------------------
 
+    interface JobStateCallback {
+        fun onJobStateChanged(state: JobState, printerState: PrinterState, stateReasons: List<String>): Boolean
+    }
+
     @JvmOverloads
     fun waitForTermination(
         delay: Duration = defaultDelay,
         jobProgressLogLevel: Level? = Level.INFO,
-        printerStateLogLevel: Level? = Level.INFO
+        printerStateLogLevel: Level? = Level.INFO,
+        callback: JobStateCallback? = null
     ) {
         logger.info { "Wait for termination of Job #$id" }
 
         var lastJobString = toString()
-        fun logJobStringWhenChanged() {
+        var shouldContinue = true
+        fun logJobStringWhenChanged(): Boolean {
             if (jobProgressLogLevel != null && toString() != lastJobString) {
                 lastJobString = toString()
                 logger.log(jobProgressLogLevel) { lastJobString }
             }
+            if (callback != null) {
+                shouldContinue = callback.onJobStateChanged(state, printer.state, stateReasons)
+            }
+            return shouldContinue
         }
 
         var lastPrinterString = ""
-        fun logPrinterStringWhenChanged() {
+        fun logPrinterStringWhenChanged(): Boolean {
             if (printerStateLogLevel != null && printer.toString() != lastPrinterString) {
                 lastPrinterString = printer.toString()
                 logger.log(printerStateLogLevel) { lastPrinterString }
             }
+            if (callback != null) {
+                shouldContinue = callback.onJobStateChanged(state, printer.state, printer.stateReasons)
+            }
+            return shouldContinue
         }
 
         logger.info { lastJobString }
-        while (!isTerminated()) {
+        while (!isTerminated() && shouldContinue) {
             Thread.sleep(delay.toMillis()) // no coroutines (http, ssl and stream parsing also require JVM)
             updateAttributes()
-            logJobStringWhenChanged()
+            if (!logJobStringWhenChanged()) break
             if (!isProcessing() || lastPrinterString.isNotEmpty()) {
                 printer.updateStateAttributes()
-                logPrinterStringWhenChanged()
+                if (!logPrinterStringWhenChanged()) break
                 if (printer.isStopped()) { // back off, manual interaction might be required
                     Thread.sleep(Duration.ofSeconds(5).toMillis())
                 }

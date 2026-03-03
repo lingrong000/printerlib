@@ -57,11 +57,27 @@ public class MainActivity extends AppCompatActivity {
 
     private EditText etIp;
     private Button btnSetIp;
-    private Button btnSnmpQuery;
     private EditText resultEditText;
     private SnmpManager snmpManager;
     private IppManager ippManager;
     private String currentIp;
+    
+    // SNMP 按钮
+    private Button btnSnmpReady;
+    private Button btnSnmpIdle;
+    private Button btnSnmpPrintTotal;
+    private Button btnSnmpWakeState;
+    private Button btnSnmpYellowFull;
+    private Button btnSnmpYellowRemain;
+    private Button btnSnmpRedFull;
+    private Button btnSnmpRedRemain;
+    private Button btnSnmpCyanFull;
+    private Button btnSnmpCyanRemain;
+    private Button btnSnmpBlackFull;
+    private Button btnSnmpBlackRemain;
+    private Button btnSnmpCurrentJob;
+    private Button btnSnmpCancelJob;
+    private Button btnSnmpOutOfPaper;
     
     // 文件选择相关
     private Button btnSelectFile;
@@ -92,12 +108,28 @@ public class MainActivity extends AppCompatActivity {
         // 初始化 UI 组件
         etIp = findViewById(R.id.et_ip);
         btnSetIp = findViewById(R.id.btn_set_ip);
-        btnSnmpQuery = findViewById(R.id.btn_snmp_query);
         resultEditText = findViewById(R.id.result_edittext);
         btnSelectFile = findViewById(R.id.btn_select_file);
         btnPrint = findViewById(R.id.btn_print);
         tvSelectedFile = findViewById(R.id.tv_selected_file);
         tvPrintResult = findViewById(R.id.tv_print_result);
+        
+        // 初始化 SNMP 按钮
+        btnSnmpReady = findViewById(R.id.btn_snmp_ready);
+        btnSnmpIdle = findViewById(R.id.btn_snmp_idle);
+        btnSnmpPrintTotal = findViewById(R.id.btn_snmp_print_total);
+        btnSnmpWakeState = findViewById(R.id.btn_snmp_wake_state);
+        btnSnmpYellowFull = findViewById(R.id.btn_snmp_yellow_full);
+        btnSnmpYellowRemain = findViewById(R.id.btn_snmp_yellow_remain);
+        btnSnmpRedFull = findViewById(R.id.btn_snmp_red_full);
+        btnSnmpRedRemain = findViewById(R.id.btn_snmp_red_remain);
+        btnSnmpCyanFull = findViewById(R.id.btn_snmp_cyan_full);
+        btnSnmpCyanRemain = findViewById(R.id.btn_snmp_cyan_remain);
+        btnSnmpBlackFull = findViewById(R.id.btn_snmp_black_full);
+        btnSnmpBlackRemain = findViewById(R.id.btn_snmp_black_remain);
+        btnSnmpCurrentJob = findViewById(R.id.btn_snmp_current_job);
+        btnSnmpCancelJob = findViewById(R.id.btn_snmp_cancel_job);
+        btnSnmpOutOfPaper = findViewById(R.id.btn_snmp_out_of_paper);
 
         // 初始化文件选择 launcher
         initFilePickerLauncher();
@@ -118,24 +150,8 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        // 设置 SNMP 查询按钮点击事件
-        btnSnmpQuery.setOnClickListener(v -> {
-            if (currentIp == null || currentIp.isEmpty()) {
-                Toast.makeText(MainActivity.this, "请先设置 IP 地址", Toast.LENGTH_SHORT).show();
-                return;
-            }
-
-            // 清空之前的结果
-            resultEditText.setText("");
-            appendResult("开始 SNMP 查询...\n\n");
-
-            // 遍历所有预定义的 OID 并执行查询
-            for (Map.Entry<String, String> entry : SnmpManager.OID_MAP.entrySet()) {
-                String key = entry.getKey();
-                String oid = entry.getValue();
-                querySnmpOid(key, oid);
-            }
-        });
+        // 设置 SNMP 按钮点击事件
+        setupSnmpButtonListeners();
 
         // 设置文件选择按钮点击事件
         btnSelectFile.setOnClickListener(v -> {
@@ -146,7 +162,7 @@ public class MainActivity extends AppCompatActivity {
             ippManager.getPrinterSupportedAsync(new IppManager.PrinterSupportedCallBack() {
                 @Override
                 public void onPrinterSupported(PrinterSupported supported) {
-
+                    Log.i("printer_test", "supported: " + supported);
                 }
 
                 @Override
@@ -290,9 +306,9 @@ public class MainActivity extends AppCompatActivity {
                 // 任务名
                 .setJobName("Test Print")
                 // 打印份数。可选设置，默认1
-                .setCopies(2)
-                // 打印范围。必须设置，打印所有，则设置new IntRange(0, 文件页数-1)
-                .setRange(new IntRange(0, 16))
+                .setCopies(1)
+                // 打印范围。可选设置，默认打印所有
+//                .setRange(new IntRange(0, 16))
                 // 单双面。可选设置，默认单面，可选项需要获取打印机支持类型，PrinterSupported.sidesSupportedList
                 .setSides("one-sided")
                 // 纸张样式。可选设置，默认A4，可选项需要获取打印机支持类型，PrinterSupported.mediaSupportedList
@@ -472,6 +488,153 @@ public class MainActivity extends AppCompatActivity {
                 resultEditText.scrollTo(0, scrollAmount);
             } else {
                 resultEditText.scrollTo(0, 0);
+            }
+        });
+    }
+
+    /**
+     * 设置 SNMP 按钮点击监听器
+     */
+    private void setupSnmpButtonListeners() {
+        // 检查 IP 地址的方法
+        Runnable checkIp = () -> {
+            if (currentIp == null || currentIp.isEmpty()) {
+                Toast.makeText(MainActivity.this, "请先设置 IP 地址", Toast.LENGTH_SHORT).show();
+            }
+        };
+
+        // 就绪状态
+        btnSnmpReady.setOnClickListener(v -> {
+            checkIp.run();
+            if (currentIp != null && !currentIp.isEmpty()) {
+                appendResult("查询就绪状态...\n");
+                querySnmpOid(SnmpManager.READY, SnmpManager.OID_MAP.get(SnmpManager.READY));
+            }
+        });
+
+        // 空闲状态
+        btnSnmpIdle.setOnClickListener(v -> {
+            checkIp.run();
+            if (currentIp != null && !currentIp.isEmpty()) {
+                appendResult("查询空闲状态...\n");
+                querySnmpOid(SnmpManager.IDLE, SnmpManager.OID_MAP.get(SnmpManager.IDLE));
+            }
+        });
+
+        // 打印总计数
+        btnSnmpPrintTotal.setOnClickListener(v -> {
+            checkIp.run();
+            if (currentIp != null && !currentIp.isEmpty()) {
+                appendResult("查询打印总计数...\n");
+                querySnmpOid(SnmpManager.PRINT_TOTAL_COUNT, SnmpManager.OID_MAP.get(SnmpManager.PRINT_TOTAL_COUNT));
+            }
+        });
+
+        // 唤醒状态设置
+        btnSnmpWakeState.setOnClickListener(v -> {
+            checkIp.run();
+            if (currentIp != null && !currentIp.isEmpty()) {
+                appendResult("查询唤醒状态...\n");
+                querySnmpOid(SnmpManager.WAKE_STATE_SET, SnmpManager.OID_MAP.get(SnmpManager.WAKE_STATE_SET));
+            }
+        });
+
+        // 黄色耗材满值
+        btnSnmpYellowFull.setOnClickListener(v -> {
+            checkIp.run();
+            if (currentIp != null && !currentIp.isEmpty()) {
+                appendResult("查询黄色耗材满值...\n");
+                querySnmpOid(SnmpManager.YELLOW_FULL, SnmpManager.OID_MAP.get(SnmpManager.YELLOW_FULL));
+            }
+        });
+
+        // 黄色耗材剩余
+        btnSnmpYellowRemain.setOnClickListener(v -> {
+            checkIp.run();
+            if (currentIp != null && !currentIp.isEmpty()) {
+                appendResult("查询黄色耗材剩余...\n");
+                querySnmpOid(SnmpManager.YELLOW_REMAIN, SnmpManager.OID_MAP.get(SnmpManager.YELLOW_REMAIN));
+            }
+        });
+
+        // 红色耗材满值
+        btnSnmpRedFull.setOnClickListener(v -> {
+            checkIp.run();
+            if (currentIp != null && !currentIp.isEmpty()) {
+                appendResult("查询红色耗材满值...\n");
+                querySnmpOid(SnmpManager.RED_FULL, SnmpManager.OID_MAP.get(SnmpManager.RED_FULL));
+            }
+        });
+
+        // 红色耗材剩余
+        btnSnmpRedRemain.setOnClickListener(v -> {
+            checkIp.run();
+            if (currentIp != null && !currentIp.isEmpty()) {
+                appendResult("查询红色耗材剩余...\n");
+                querySnmpOid(SnmpManager.RED_REMAIN, SnmpManager.OID_MAP.get(SnmpManager.RED_REMAIN));
+            }
+        });
+
+        // 青色耗材满值
+        btnSnmpCyanFull.setOnClickListener(v -> {
+            checkIp.run();
+            if (currentIp != null && !currentIp.isEmpty()) {
+                appendResult("查询青色耗材满值...\n");
+                querySnmpOid(SnmpManager.CYAN_FULL, SnmpManager.OID_MAP.get(SnmpManager.CYAN_FULL));
+            }
+        });
+
+        // 青色耗材剩余
+        btnSnmpCyanRemain.setOnClickListener(v -> {
+            checkIp.run();
+            if (currentIp != null && !currentIp.isEmpty()) {
+                appendResult("查询青色耗材剩余...\n");
+                querySnmpOid(SnmpManager.CYAN_REMAIN, SnmpManager.OID_MAP.get(SnmpManager.CYAN_REMAIN));
+            }
+        });
+
+        // 黑色耗材满值
+        btnSnmpBlackFull.setOnClickListener(v -> {
+            checkIp.run();
+            if (currentIp != null && !currentIp.isEmpty()) {
+                appendResult("查询黑色耗材满值...\n");
+                querySnmpOid(SnmpManager.BLACK_FULL, SnmpManager.OID_MAP.get(SnmpManager.BLACK_FULL));
+            }
+        });
+
+        // 黑色耗材剩余
+        btnSnmpBlackRemain.setOnClickListener(v -> {
+            checkIp.run();
+            if (currentIp != null && !currentIp.isEmpty()) {
+                appendResult("查询黑色耗材剩余...\n");
+                querySnmpOid(SnmpManager.BLACK_REMAIN, SnmpManager.OID_MAP.get(SnmpManager.BLACK_REMAIN));
+            }
+        });
+
+        // 当前作业 ID
+        btnSnmpCurrentJob.setOnClickListener(v -> {
+            checkIp.run();
+            if (currentIp != null && !currentIp.isEmpty()) {
+                appendResult("查询当前作业 ID...\n");
+                querySnmpOid(SnmpManager.CURRENT_JOB_ID, SnmpManager.OID_MAP.get(SnmpManager.CURRENT_JOB_ID));
+            }
+        });
+
+        // 取消作业
+        btnSnmpCancelJob.setOnClickListener(v -> {
+            checkIp.run();
+            if (currentIp != null && !currentIp.isEmpty()) {
+                appendResult("执行取消作业...\n");
+                querySnmpOid(SnmpManager.CANCEL_JOB, SnmpManager.OID_MAP.get(SnmpManager.CANCEL_JOB));
+            }
+        });
+
+        // 缺纸状态
+        btnSnmpOutOfPaper.setOnClickListener(v -> {
+            checkIp.run();
+            if (currentIp != null && !currentIp.isEmpty()) {
+                appendResult("查询缺纸状态...\n");
+                querySnmpOid(SnmpManager.OUT_OF_PAPER, SnmpManager.OID_MAP.get(SnmpManager.OUT_OF_PAPER));
             }
         });
     }

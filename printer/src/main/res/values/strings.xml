@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="print_reason_media_empty">缺纸</string>
+    <string name="print_reason_media_needed">请装纸</string>
+    <string name="print_reason_media_jam">打印机卡纸</string>
+    <string name="print_reason_media_low">纸张即将用尽</string>
+    <string name="print_reason_input_tray_missing">进纸盘未插入</string>
+    <string name="print_reason_output_area_full">出纸托盘已满</string>
+
+    <!-- 2. 耗材 (Supplies/Marker) -->
+    <string name="print_reason_toner_empty">墨粉/碳粉已耗尽</string>
+    <string name="print_reason_toner_low">墨粉/碳粉不足</string>
+    <string name="print_reason_ink_empty">墨水已耗尽</string>
+    <string name="print_reason_ink_low">墨水不足</string>
+    <string name="print_reason_marker_supply_empty">耗材已耗尽</string>
+    <string name="print_reason_marker_waste_full">废粉仓/废墨盒已满</string>
+
+    <!-- 3. 硬件状态 (Hardware) -->
+    <string name="print_reason_door_open">机盖未关</string>
+    <string name="print_reason_cover_open">外壳已打开</string>
+    <string name="print_reason_interlock_open">安全联锁装置已打开</string>
+    <string name="print_reason_internal_storage_full">打印机内存已满</string>
+    <string name="print_reason_hardware_fault">硬件故障</string>
+
+    <!-- 4. 连接与系统 (System) -->
+    <string name="print_reason_offline">打印机离线</string>
+    <string name="print_reason_paused">打印机已暂停</string>
+    <string name="print_reason_shutdown">打印机已关机</string>
+    <string name="print_reason_timed_out">连接超时</string>
+    <string name="print_reason_stopping">正在停止...</string>
+
+    <string name="print_reason_unknown">未知状态</string>
+</resources>

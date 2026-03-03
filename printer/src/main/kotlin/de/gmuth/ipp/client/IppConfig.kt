@@ -22,7 +22,7 @@ class IppConfig(
     var naturalLanguage: String = "en",
 
     // HTTP config
-    var timeout: Duration = Duration.ofSeconds(30),
+    var timeout: Duration = Duration.ofSeconds(60),
     var userAgent: String? = "ipp-client/3.4",
     var password: String? = null,
     var sslContext: SSLContext? = null,

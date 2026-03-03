@@ -26,16 +26,29 @@ dependencies {
 
 3. 同步项目（Sync Project with Gradle Files）
 
-### 1.2 Maven 仓库引入方式
+### 1.2 JitPack 引入方式
 
-如果 AAR 文件已发布到 Maven 仓库，可直接在 `build.gradle` 中添加依赖：
+1. 在项目的 `settings.gradle` 文件中添加 JitPack 仓库：
+
+```groovy
+repositories {
+    // 其他仓库...
+    maven {
+        url 'https://jitpack.io'
+    }
+}
+```
+
+2. 在模块的 `build.gradle` 文件中添加依赖：
 
 ```groovy
 dependencies {
     // 其他依赖...
-    implementation 'com.cumtenn:printer:版本号'
+    implementation 'com.github.lingrong000:printerlib:v1.1.1'
 }
 ```
+
+3. 同步项目（Sync Project with Gradle Files）
 
 ## 2. API 接口说明
 
@@ -47,7 +60,42 @@ dependencies {
 - **设计模式**：单例模式
 - **包路径**：`com.cumtenn.printer.IppManager`
 
-#### 2.1.2 核心方法
+
+
+#### 2.1.2 PrintParams 类
+
+用于配置打印参数，采用 Builder 模式：
+
+```java
+
+// 创建打印参数
+PrintParams params = new PrintParams.Builder()
+    // 任务名
+    .setJobName("Test Print")
+    // 打印份数。可选设置，默认1
+    .setCopies(2)
+    // 打印范围。必须设置，打印所有，则设置new IntRange(0, 文件页数-1)
+    .setRange(new IntRange(0, 16))
+    // 单双面。可选设置，默认单面，可选项需要获取打印机支持类型，PrinterSupported.sidesSupportedList
+    .setSides("one-sided")
+    // 纸张样式。可选设置，默认A4，可选项需要获取打印机支持类型，PrinterSupported.mediaSupportedList
+    .setMedia("iso_a4_210x297mm")
+    // 文件类型。可选设置，默认pdf，可选项需要获取打印机支持类型，PrinterSupported.documentFormatSupportedList
+    .setDocumentFormat("application/pdf")
+    // 打印颜色。可选设置，默认Auto，可选项: auto、color、monochrome，如果需要选择color，则需要先获取打印机支持类型，PrinterSupported.colorSupported为true才可以
+    .setColorMode("auto")
+    // 方向。可选设置，默认Portrait，可选项需要获取打印机支持类型，PrinterSupported.orientationList
+    .setOrientation(Orientation.Portrait)
+    // 打印质量。可选设置，默认Normal，可选项需要获取打印机支持类型，PrinterSupported.qualityList
+    .setQuality(Quality.Normal)
+    // 压缩。可选设置，默认none，可选项需要获取打印机支持类型，PrinterSupported.compressList
+    .setCompression("none")
+    .build();
+```
+
+
+
+#### 2.1.3 核心方法
 
 ##### 获取实例
 
@@ -72,10 +120,8 @@ manager.setPort(631);
 ```java
 // 创建打印参数
 PrintParams params = new PrintParams.Builder()
-    .setCopies(1)
-    .setSides("one-sided")
-    .setMedia("iso_a4_210x297mm")
-    .setDocumentFormat("application/pdf")
+    .setJobName("Test Print")
+    .setRange(new IntRange(0, 16))
     .build();
 
 // 调用打印方法
@@ -108,7 +154,7 @@ manager.getPrinterSupportedAsync(new IppManager.PrinterSupportedCallBack() {
     @Override
     public void onPrinterSupported(PrinterSupported supported) {
         // 处理打印机支持的功能
-        Log.i("Print", "打印机支持的纸张类型: " + supported.getMediaSupportedList());
+        Log.i("Print", "打印机支持的类型: " + supported);
     }
 
     @Override
@@ -133,7 +179,7 @@ manager.getPrinterStatusAsync(new IppManager.PrinterStatusCallBack() {
     @Override
     public void onPrinterStatus(PrinterStatus status) {
         // 处理打印机状态
-        Log.i("Print", "打印机状态: " + status.getStateMessage());
+        Log.i("Print", "打印机状态: " + status);
     }
 
     @Override
@@ -150,21 +196,7 @@ manager.getPrinterStatusAsync(new IppManager.PrinterStatusCallBack() {
 manager.release();
 ```
 
-#### 2.1.3 PrintParams 类
 
-用于配置打印参数，采用 Builder 模式：
-
-```java
-PrintParams params = new PrintParams.Builder()
-    .setCopies(2)                    // 打印份数
-    .setSides("two-sided-long-edge") // 双面打印，长边装订
-    .setMedia("iso_a4_210x297mm")    // A4 纸张
-    .setQuality(PrintQuality.High)   // 高质量打印
-    .setColorMode(ColorMode.Color)   // 彩色打印
-    .setOrientation(Orientation.Landscape) // 横向打印
-    .setRange(new IntRange(1, 5))    // 打印 1-5 页
-    .build();
-```
 
 #### 2.1.4 回调接口
 
@@ -228,6 +260,11 @@ SnmpManager.CYAN_REMAIN        // 青色耗材剩余 OID
 SnmpManager.BLACK_FULL         // 黑色耗材满值 OID
 SnmpManager.BLACK_REMAIN       // 黑色耗材剩余 OID
 
+// SNMP 版本常量
+SnmpManager.SNMP_V1            // SNMP 版本 1
+SnmpManager.SNMP_V2C           // SNMP 版本 2c（默认）
+SnmpManager.SNMP_V3            // SNMP 版本 3
+
 // 其他
 SnmpManager.CURRENT_JOB_ID     // 当前作业 ID OID
 SnmpManager.CANCEL_JOB         // 取消作业 OID
@@ -259,6 +296,10 @@ manager.setTimeout(3000);
 
 // 可选：设置重试次数（默认 2 次）
 manager.setRetries(3);
+
+// 可选：设置 SNMP 版本（默认 SNMP_V2C）
+// 可用版本常量：SNMP_V1, SNMP_V2C, SNMP_V3
+manager.setVersion(SnmpManager.SNMP_V2C);
 ```
 
 ##### 通过预定义 Key 获取打印机状态
@@ -322,13 +363,25 @@ public interface SnmpCallback {
 IppManager ippManager = IppManager.getInstance();
 ippManager.setIp("192.168.1.100");
 
+// 异步获取打印机支持功能
+ippManager.getPrinterSupportedAsync(new IppManager.PrinterSupportedCallBack() {
+    @Override
+    public void onPrinterSupported(PrinterSupported supported) {
+        Log.i("Print", "打印机支持的类型: " + supported);
+    }
+
+    @Override
+    public void onSupportedError(String errorInfo) {
+        Log.e("Print", "获取支持功能失败: " + errorInfo);
+    }
+});
+
 // 创建打印参数
 PrintParams params = new PrintParams.Builder()
-    .setCopies(1)
-    .setSides("one-sided")
-    .setMedia("iso_a4_210x297mm")
-    .setDocumentFormat("application/pdf")
-    .build();
+                .setJobName("Test Print")
+                .setCopies(2)
+                .setRange(new IntRange(0, 16)) 
+                .build();
 
 // 打印文件
 String filePath = "sdcard/Download/test.pdf";
@@ -354,19 +407,6 @@ ippManager.getPrinterStatusAsync(new IppManager.PrinterStatusCallBack() {
     @Override
     public void onStatusError(String errorInfo) {
         Log.e("Print", "获取状态失败: " + errorInfo);
-    }
-});
-
-// 异步获取打印机支持功能
-ippManager.getPrinterSupportedAsync(new IppManager.PrinterSupportedCallBack() {
-    @Override
-    public void onPrinterSupported(PrinterSupported supported) {
-        Log.i("Print", "打印机支持的纸张类型: " + supported.getMediaSupportedList());
-    }
-
-    @Override
-    public void onSupportedError(String errorInfo) {
-        Log.e("Print", "获取支持功能失败: " + errorInfo);
     }
 });
 ```
@@ -423,7 +463,7 @@ snmpManager.getByKey(SnmpManager.BLACK_REMAIN, new SnmpManager.SnmpCallback() {
    - 异步方法的异常会通过回调的 `onError` 方法返回
 
 5. **版本兼容性**：
-   - 建议使用 Android 6.0（API 23）及以上版本
+   - 建议使用 Android 8.0（API 26）及以上版本
    - 如需支持更低版本，需自行处理权限请求等兼容性问题
 
 ## 5. 故障排查
@@ -444,6 +484,12 @@ snmpManager.getByKey(SnmpManager.BLACK_REMAIN, new SnmpManager.SnmpCallback() {
    - 检查 OID 是否被打印机支持
 
 ## 6. 更新日志
+
+- **版本 1.1.1**：
+  - 新增 JitPack 引入方式
+  - 新增 SnmpManager.setVersion() 方法，支持设置 SNMP 版本
+  - 优化 SnmpManager.performSnmpGet() 方法，使用 try-with-resources 语法
+  - 增强异常处理和错误信息
 
 - **版本 1.0.0**：
   - 初始版本
