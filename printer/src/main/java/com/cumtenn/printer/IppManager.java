@@ -35,8 +35,10 @@ import de.gmuth.ipp.attributes.PrintQuality;
 import de.gmuth.ipp.attributes.PrinterState;
 import de.gmuth.ipp.attributes.Sides;
 import de.gmuth.ipp.client.IppJob;
+import de.gmuth.ipp.client.IppOperationException;
 import de.gmuth.ipp.client.IppPrinter;
 import de.gmuth.ipp.core.IppAttributeBuilder;
+import de.gmuth.ipp.core.IppString;
 import kotlin.ranges.IntRange;
 
 public class IppManager {
@@ -102,16 +104,13 @@ public class IppManager {
                 }
 
                 // 打印机状态检查
-                PrinterStatus status = getPrinterStatus();
+                PrinterStatus status = getPrinterStatus(context);
                 if (status.getState() != PrinterStatus.State.Idle) {
                     callBack.onPrinterError("Printing, please wait");
                     return;
                 }
                 if (status.isError()) {
-                    callBack.onPrinterError(status.getReasonList().stream()
-                            .filter(Objects::nonNull)
-                            .collect(Collectors.joining(", "))
-                    );
+                    callBack.onPrinterError(status.getReasonTrans());
                     return;
                 }
 
@@ -138,18 +137,15 @@ public class IppManager {
                     }
                 }
                 // 打印完成后，检查打印机是否有报错
-                status = getPrinterStatus();
+                status = getPrinterStatus(context);
                 if (status.isError()) {
-                    String error = status.getReasonList().stream()
-                            .filter(Objects::nonNull)
-                            .collect(Collectors.joining(", "));
-                    callBack.onPrinterError(error);
+                    callBack.onPrinterError(status.getReasonTrans());
                 } else{
                     callBack.onPrinterSuccess();
                 }
 
-            } catch (Exception e) {
-                e.printStackTrace();
+            }catch (Exception e) {
+                Log.i(TAG, "Print error: " + e);
                 callBack.onPrinterError("Print error: " + e);
             }
         });
@@ -274,7 +270,7 @@ public class IppManager {
         });
     }
 
-    public PrinterStatus getPrinterStatus() {
+    public PrinterStatus getPrinterStatus(Context context) {
         if (!isIpAddressValid(ip)) {
             throw new IllegalArgumentException("invalid ip：" + ip);
         }
@@ -285,24 +281,30 @@ public class IppManager {
 
         PrinterStatus status = new PrinterStatus();
         status.setState(ippPrinter.getState());
-        status.setStateMessage(Objects.requireNonNull(ippPrinter.getStateMessage()).getText());
+        IppString stateMsg = ippPrinter.getStateMessage();
+        if (stateMsg != null) {
+            status.setStateMessage(stateMsg.getText());
+        }
         List<String> reasonList = ippPrinter.getStateReasons();
         status.setReasonList(reasonList);
+        status.setReasonTrans(PrinterReasonHelper.getDescriptionByReason(context, reasonList));
         if (!reasonList.isEmpty()) {
             status.setError(!reasonList.get(0).equals("none"));
         }
 
+        Log.i(TAG, "jobs: " + ippPrinter.getJobs());
+
         return status;
     }
 
-    public void getPrinterStatusAsync(PrinterStatusCallBack callBack) {
+    public void getPrinterStatusAsync(Context context, PrinterStatusCallBack callBack) {
         if (callBack == null) {
             throw new IllegalArgumentException("callback is null");
         }
 
         executor.execute(() -> {
             try {
-                PrinterStatus status = getPrinterStatus();
+                PrinterStatus status = getPrinterStatus(context);
                 callBack.onPrinterStatus(status);
             } catch (Exception e) {
                 e.printStackTrace();

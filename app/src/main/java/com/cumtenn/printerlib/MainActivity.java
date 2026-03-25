@@ -171,7 +171,7 @@ public class MainActivity extends AppCompatActivity {
                 }
             });
             
-            ippManager.getPrinterStatusAsync(new IppManager.PrinterStatusCallBack() {
+            ippManager.getPrinterStatusAsync(this, new IppManager.PrinterStatusCallBack() {
                 @Override
                 public void onPrinterStatus(PrinterStatus status) {
                     Log.i("printer_test", "status: " + status);
@@ -308,9 +308,9 @@ public class MainActivity extends AppCompatActivity {
                 // 打印份数。可选设置，默认1
                 .setCopies(1)
                 // 打印范围。可选设置，默认打印所有
-//                .setRange(new IntRange(0, 16))
+//                .setRange(new IntRange(1, 16))
                 // 单双面。可选设置，默认单面，可选项需要获取打印机支持类型，PrinterSupported.sidesSupportedList
-                .setSides("one-sided")
+                .setSides("one-sided") //one-sided two-sided-long-edge two-sided-short-edge
                 // 纸张样式。可选设置，默认A4，可选项需要获取打印机支持类型，PrinterSupported.mediaSupportedList
                 .setMedia("iso_a4_210x297mm")
                 // 文件类型。可选设置，默认pdf，可选项需要获取打印机支持类型，PrinterSupported.documentFormatSupportedList
@@ -325,7 +325,7 @@ public class MainActivity extends AppCompatActivity {
                 .setCompression("none")
                 .build();
 
-        ippManager.getPrinterStatusAsync(new IppManager.PrinterStatusCallBack() {
+        ippManager.getPrinterStatusAsync(this, new IppManager.PrinterStatusCallBack() {
             @Override
             public void onPrinterStatus(PrinterStatus status) {
 

@@ -29,6 +29,7 @@ public class PrinterReasonHelper {
         MAP.put("ink-empty", R.string.print_reason_ink_empty);
         MAP.put("ink-low", R.string.print_reason_ink_low);
         MAP.put("marker-supply-empty", R.string.print_reason_marker_supply_empty);
+        MAP.put("marker-supply-low", R.string.print_reason_marker_supply_low);
         MAP.put("marker-waste-full", R.string.print_reason_marker_waste_full);
 
         // Hardware
@@ -60,13 +61,15 @@ public class PrinterReasonHelper {
 
             if (MAP.containsKey(cleanKey)) {
                 results.add(context.getString(MAP.get(cleanKey)));
+            } else {
+                results.add(r);
             }
         }
 
         if (results.isEmpty()) {
             return context.getString(R.string.print_reason_unknown);
         }
-        return TextUtils.join("; ", results);
+        return TextUtils.join(", ", results);
     }
 }
 

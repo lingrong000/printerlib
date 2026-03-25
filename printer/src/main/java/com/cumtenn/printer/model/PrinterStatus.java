@@ -8,6 +8,10 @@ public class PrinterStatus {
     private State state;
     private String stateMessage;
     private List<String> reasonList;
+    /**
+     * 错误码解析
+     */
+    private String reasonTrans;
 
     private boolean isError;
 
@@ -37,6 +41,14 @@ public class PrinterStatus {
 
     public void setReasonList(List<String> reasonList) {
         this.reasonList = reasonList;
+    }
+
+    public String getReasonTrans() {
+        return reasonTrans;
+    }
+
+    public void setReasonTrans(String reasonTrans) {
+        this.reasonTrans = reasonTrans;
     }
 
     public boolean isError() {
@@ -80,6 +92,7 @@ public class PrinterStatus {
                 "state=" + state +
                 ", stateMessage='" + stateMessage + '\'' +
                 ", reasonList=" + reasonList +
+                ", reasonTrans=" + reasonTrans +
                 ", isError=" + isError +
                 '}';
     }

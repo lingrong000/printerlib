@@ -13,6 +13,7 @@
     <string name="print_reason_ink_empty">墨水已耗尽</string>
     <string name="print_reason_ink_low">墨水不足</string>
     <string name="print_reason_marker_supply_empty">耗材已耗尽</string>
+    <string name="print_reason_marker_supply_low">耗材余量低</string>
     <string name="print_reason_marker_waste_full">废粉仓/废墨盒已满</string>
 
     <!-- 3. 硬件状态 (Hardware) -->
