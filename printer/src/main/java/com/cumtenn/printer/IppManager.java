@@ -18,12 +18,10 @@ import com.cumtenn.printer.utils.PrinterReasonHelper;
 import java.io.File;
 import java.io.IOException;
 import java.util.List;
-import java.util.Objects;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import java.util.stream.Collectors;
 
 import de.gmuth.ipp.attributes.ColorMode;
 import de.gmuth.ipp.attributes.Compression;
@@ -35,7 +33,6 @@ import de.gmuth.ipp.attributes.PrintQuality;
 import de.gmuth.ipp.attributes.PrinterState;
 import de.gmuth.ipp.attributes.Sides;
 import de.gmuth.ipp.client.IppJob;
-import de.gmuth.ipp.client.IppOperationException;
 import de.gmuth.ipp.client.IppPrinter;
 import de.gmuth.ipp.core.IppAttributeBuilder;
 import de.gmuth.ipp.core.IppString;
@@ -50,8 +47,9 @@ public class IppManager {
     private int port = 631;
 
     private String printUri;
+    private IppJob currentJob;
 
-    private final ExecutorService executor = Executors.newSingleThreadExecutor();
+    private final ExecutorService executor = Executors.newCachedThreadPool();
 
     private IppManager() {
     }
@@ -165,10 +163,11 @@ public class IppManager {
                 new Media(params.getMedia())};
 
         IppPrinter ippPrinter = new IppPrinter(printUri);
-        IppJob job = ippPrinter.printJob(file, builders, null);
+        currentJob = ippPrinter.printJob(file, builders, null);
+        callBack.onPrinterStart();
         
         final boolean[] canceled = {false};
-        job.waitForTermination(
+        currentJob.waitForTermination(
             java.time.Duration.ofSeconds(1),
             Level.INFO,
             Level.INFO,
@@ -232,6 +231,19 @@ public class IppManager {
         }
     }
 
+    public void cancelPrint() {
+        executor.execute(() -> {
+            try {
+                Log.i(TAG, "current job: " + currentJob);
+                if (currentJob != null && currentJob.isProcessing()) {
+                    currentJob.cancel();
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        });
+    }
+
     public PrinterSupported getPrinterSupported() {
         if (!isIpAddressValid(ip)) {
             throw new IllegalArgumentException("invalid ip：" + ip);
@@ -292,8 +304,6 @@ public class IppManager {
             status.setError(!reasonList.get(0).equals("none"));
         }
 
-        Log.i(TAG, "jobs: " + ippPrinter.getJobs());
-
         return status;
     }
 
@@ -345,7 +355,6 @@ public class IppManager {
     public void setPort(int port) {
         this.port = port;
         printUri = "ipp://" + ip + ":" + port + "/ipp/print";
-//        ippPrinter = new IppPrinter(printUri);
     }
 
     public void release() {
@@ -365,6 +374,8 @@ public class IppManager {
         void onPrinterError(String errorInfo);
 
         void onPrinterSuccess();
+
+        void onPrinterStart();
     }
 
     public interface PrinterSupportedCallBack {

@@ -81,6 +81,7 @@ public class MainActivity extends AppCompatActivity {
     
     // 文件选择相关
     private Button btnSelectFile;
+    private Button btnCancelPrint;
     private Button btnPrint;
     private TextView tvSelectedFile;
     private TextView tvPrintResult;
@@ -111,6 +112,7 @@ public class MainActivity extends AppCompatActivity {
         resultEditText = findViewById(R.id.result_edittext);
         btnSelectFile = findViewById(R.id.btn_select_file);
         btnPrint = findViewById(R.id.btn_print);
+        btnCancelPrint = findViewById(R.id.btn_cancel_print);
         tvSelectedFile = findViewById(R.id.tv_selected_file);
         tvPrintResult = findViewById(R.id.tv_print_result);
         
@@ -195,6 +197,11 @@ public class MainActivity extends AppCompatActivity {
                 return;
             }
             printSelectedFile();
+        });
+
+        btnCancelPrint.setOnClickListener(v -> {
+            ippManager.cancelPrint();
+            btnCancelPrint.setEnabled(false);
         });
     }
 
@@ -348,9 +355,12 @@ public class MainActivity extends AppCompatActivity {
 
             @Override
             public void onPrinterSuccess() {
-                runOnUiThread(() -> {
-                    tvPrintResult.setText("打印结果：打印成功");
-                });
+                runOnUiThread(() -> tvPrintResult.setText("打印结果：打印成功"));
+            }
+
+            @Override
+            public void onPrinterStart() {
+                runOnUiThread(() -> btnCancelPrint.setEnabled(true));
             }
         });
     }

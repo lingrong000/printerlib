@@ -339,6 +339,17 @@
             android:textColor="#FFFFFF"
             android:layout_marginBottom="8dp" />
 
+        <Button
+            android:id="@+id/btn_cancel_print"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="取消打印"
+            android:enabled="false"
+            android:textSize="16sp"
+            android:background="@drawable/ripple_primary_button_8_selector"
+            android:textColor="#FFFFFF"
+            android:layout_marginBottom="8dp" />
+
         <TextView
             android:id="@+id/tv_print_result"
             android:layout_width="match_parent"
