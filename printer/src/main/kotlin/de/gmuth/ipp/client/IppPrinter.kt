@@ -138,9 +138,9 @@ open class IppPrinter(
     fun basicAuth(user: String, password: String) =
         ippClient.basicAuth(user, password)
 
-    var getJobsRequestedAttributes: List<String>? =
-        if (isCups()) cupsGetJobsRequestedAttributes
-        else null // Printer or server decides which attributes to return.
+    var getJobsRequestedAttributes: List<String>? = cupsGetJobsRequestedAttributes
+//        if (isCups()) cupsGetJobsRequestedAttributes
+//        else null // Printer or server decides which attributes to return.
 
     //---------------
     // IPP attributes

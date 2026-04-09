@@ -17,6 +17,7 @@ import com.cumtenn.printer.utils.PrinterReasonHelper;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -34,6 +35,7 @@ import de.gmuth.ipp.attributes.PrinterState;
 import de.gmuth.ipp.attributes.Sides;
 import de.gmuth.ipp.client.IppJob;
 import de.gmuth.ipp.client.IppPrinter;
+import de.gmuth.ipp.client.WhichJobs;
 import de.gmuth.ipp.core.IppAttributeBuilder;
 import de.gmuth.ipp.core.IppString;
 import kotlin.ranges.IntRange;
@@ -47,7 +49,7 @@ public class IppManager {
     private int port = 631;
 
     private String printUri;
-    private IppJob currentJob;
+    private volatile IppJob currentJob;
 
     private final ExecutorService executor = Executors.newCachedThreadPool();
 
@@ -150,6 +152,8 @@ public class IppManager {
     }
 
     private boolean printSingleFile(Context context, File file, PrintParams params, PrinterCallBack callBack) {
+//        setupIppLogging();
+
         IppAttributeBuilder[] builders = new IppAttributeBuilder[]{
                 copies(params.getCopies()),
                 jobName(file.getName()),
@@ -232,14 +236,23 @@ public class IppManager {
     }
 
     public void cancelPrint() {
+//        setupIppLogging();
         executor.execute(() -> {
             try {
                 Log.i(TAG, "current job: " + currentJob);
+
                 if (currentJob != null && currentJob.isProcessing()) {
                     currentJob.cancel();
+                } else {
+                    IppPrinter ippPrinter = new IppPrinter(printUri);
+                    for (IppJob ippJob: ippPrinter.getJobs(WhichJobs.Processing)) {
+                        Log.i(TAG, "job: " + ippJob);
+                        ippJob.cancel();
+                    }
                 }
             } catch (Exception e) {
                 e.printStackTrace();
+                Log.e(TAG, "cancelPrint error: " + e);
             }
         });
     }
