@@ -1,24 +1,13 @@
 package com.cumtenn.printerlib;
 
 import android.Manifest;
-import android.content.ContentResolver;
-import android.content.Intent;
 import android.content.pm.PackageManager;
-import android.database.Cursor;
-import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
-import android.provider.OpenableColumns;
 import android.provider.Settings;
-import android.util.Log;
-import android.widget.Button;
-import android.widget.EditText;
-import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
-import androidx.activity.result.ActivityResultLauncher;
-import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
@@ -26,364 +15,99 @@ import androidx.core.content.ContextCompat;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
+import androidx.fragment.app.Fragment;
+import androidx.lifecycle.ViewModelProvider;
+import androidx.viewpager2.adapter.FragmentStateAdapter;
 
 import com.cumtenn.printer.IppManager;
-import com.cumtenn.printer.PrintParams;
 import com.cumtenn.printer.SnmpManager;
-import com.cumtenn.printer.model.Orientation;
-import com.cumtenn.printer.model.PrinterStatus;
-import com.cumtenn.printer.model.PrinterSupported;
-import com.cumtenn.printer.model.Quality;
+import com.cumtenn.printerlib.databinding.ActivityMainBinding;
+import com.google.android.material.tabs.TabLayoutMediator;
 
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
-
-import kotlin.ranges.IntRange;
 
 public class MainActivity extends AppCompatActivity {
 
-    // 权限请求常量
     private static final int PERMISSION_REQUEST_CODE = 100;
     private static final int MANAGE_EXTERNAL_STORAGE_REQUEST_CODE = 101;
-    
-    // 文件选择常量
-    private static final String PDF_MIME_TYPE = "application/pdf";
 
-    private EditText etIp;
-    private Button btnSetIp;
-    private EditText resultEditText;
-    private SnmpManager snmpManager;
-    private IppManager ippManager;
-    private String currentIp;
-    
-    // SNMP 按钮
-    private Button btnSnmpReady;
-    private Button btnSnmpIdle;
-    private Button btnSnmpPrintTotal;
-    private Button btnSnmpWakeState;
-    private Button btnSnmpYellowFull;
-    private Button btnSnmpYellowRemain;
-    private Button btnSnmpRedFull;
-    private Button btnSnmpRedRemain;
-    private Button btnSnmpCyanFull;
-    private Button btnSnmpCyanRemain;
-    private Button btnSnmpBlackFull;
-    private Button btnSnmpBlackRemain;
-    private Button btnSnmpCurrentJob;
-    private Button btnSnmpCancelJob;
-    private Button btnSnmpOutOfPaper;
-    
-    // 文件选择相关
-    private Button btnSelectFile;
-    private Button btnCancelPrint;
-    private Button btnPrint;
-    private TextView tvSelectedFile;
-    private TextView tvPrintResult;
-    private String selectedFileName;
-    private String localFilePath;
-    
-    // ActivityResultLauncher 用于文件选择
-    private ActivityResultLauncher<Intent> filePickerLauncher;
+    private ActivityMainBinding binding;
+    private SharedViewModel sharedViewModel;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         EdgeToEdge.enable(this);
-        setContentView(R.layout.activity_main);
-        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main), (v, insets) -> {
+        binding = ActivityMainBinding.inflate(getLayoutInflater());
+        setContentView(binding.getRoot());
+        ViewCompat.setOnApplyWindowInsetsListener(binding.main, (v, insets) -> {
             Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
             return insets;
         });
 
-        // 初始化 SNMP 管理器和 IPP 管理器
-        snmpManager = SnmpManager.getInstance();
-        ippManager = IppManager.getInstance();
+        sharedViewModel = new ViewModelProvider(this).get(SharedViewModel.class);
 
-        // 初始化 UI 组件
-        etIp = findViewById(R.id.et_ip);
-        btnSetIp = findViewById(R.id.btn_set_ip);
-        resultEditText = findViewById(R.id.result_edittext);
-        btnSelectFile = findViewById(R.id.btn_select_file);
-        btnPrint = findViewById(R.id.btn_print);
-        btnCancelPrint = findViewById(R.id.btn_cancel_print);
-        tvSelectedFile = findViewById(R.id.tv_selected_file);
-        tvPrintResult = findViewById(R.id.tv_print_result);
-        
-        // 初始化 SNMP 按钮
-        btnSnmpReady = findViewById(R.id.btn_snmp_ready);
-        btnSnmpIdle = findViewById(R.id.btn_snmp_idle);
-        btnSnmpPrintTotal = findViewById(R.id.btn_snmp_print_total);
-        btnSnmpWakeState = findViewById(R.id.btn_snmp_wake_state);
-        btnSnmpYellowFull = findViewById(R.id.btn_snmp_yellow_full);
-        btnSnmpYellowRemain = findViewById(R.id.btn_snmp_yellow_remain);
-        btnSnmpRedFull = findViewById(R.id.btn_snmp_red_full);
-        btnSnmpRedRemain = findViewById(R.id.btn_snmp_red_remain);
-        btnSnmpCyanFull = findViewById(R.id.btn_snmp_cyan_full);
-        btnSnmpCyanRemain = findViewById(R.id.btn_snmp_cyan_remain);
-        btnSnmpBlackFull = findViewById(R.id.btn_snmp_black_full);
-        btnSnmpBlackRemain = findViewById(R.id.btn_snmp_black_remain);
-        btnSnmpCurrentJob = findViewById(R.id.btn_snmp_current_job);
-        btnSnmpCancelJob = findViewById(R.id.btn_snmp_cancel_job);
-        btnSnmpOutOfPaper = findViewById(R.id.btn_snmp_out_of_paper);
-
-        // 初始化文件选择 launcher
-        initFilePickerLauncher();
-
-        // 检查权限
         checkAndRequestPermissions();
+        setupViewPager();
+        setupIpButton();
+    }
 
-        // 设置 IP 按钮点击事件
-        btnSetIp.setOnClickListener(v -> {
-            String ip = etIp.getText().toString().trim();
+    private void setupViewPager() {
+        FragmentStateAdapter adapter = new FragmentStateAdapter(this) {
+            @Override
+            public Fragment createFragment(int position) {
+                if (position == 0) {
+                    return SnmpFragment.newInstance();
+                } else {
+                    return PrintFragment.newInstance();
+                }
+            }
+
+            @Override
+            public int getItemCount() {
+                return 2;
+            }
+        };
+
+        binding.viewPager.setAdapter(adapter);
+
+        new TabLayoutMediator(binding.tabLayout, binding.viewPager, (tab, position) -> {
+            if (position == 0) {
+                tab.setText("SNMP 查询");
+            } else {
+                tab.setText("打印");
+            }
+        }).attach();
+    }
+
+    private void setupIpButton() {
+        binding.btnSetIp.setOnClickListener(v -> {
+            String ip = binding.etIp.getText().toString().trim();
             if (!ip.isEmpty()) {
-                currentIp = ip;
-                snmpManager.setIp(ip);
-                ippManager.setIp(ip);
+                sharedViewModel.setIp(ip);
+                SnmpManager.getInstance().setIp(ip);
+                IppManager.getInstance().setIp(ip);
                 Toast.makeText(MainActivity.this, "IP 设置成功: " + ip, Toast.LENGTH_SHORT).show();
             } else {
                 Toast.makeText(MainActivity.this, "请输入有效的 IP 地址", Toast.LENGTH_SHORT).show();
             }
         });
-
-        // 设置 SNMP 按钮点击事件
-        setupSnmpButtonListeners();
-
-        // 设置文件选择按钮点击事件
-        btnSelectFile.setOnClickListener(v -> {
-            openFilePicker();
-        });
-
-        findViewById(R.id.btn_print_supported).setOnClickListener(v -> {
-            ippManager.getPrinterSupportedAsync(new IppManager.PrinterSupportedCallBack() {
-                @Override
-                public void onPrinterSupported(PrinterSupported supported) {
-                    Log.i("printer_test", "supported: " + supported);
-                }
-
-                @Override
-                public void onSupportedError(String errorInfo) {
-
-                }
-            });
-            
-            ippManager.getPrinterStatusAsync(this, new IppManager.PrinterStatusCallBack() {
-                @Override
-                public void onPrinterStatus(PrinterStatus status) {
-                    Log.i("printer_test", "status: " + status);
-                }
-
-                @Override
-                public void onStatusError(String errorInfo) {
-
-                }
-            });
-        });
-
-        // 设置打印按钮点击事件
-        btnPrint.setOnClickListener(v -> {
-            if (currentIp == null || currentIp.isEmpty()) {
-                Toast.makeText(MainActivity.this, "请先设置 IP 地址", Toast.LENGTH_SHORT).show();
-                return;
-            }
-            if (localFilePath == null || localFilePath.isEmpty()) {
-                Toast.makeText(MainActivity.this, "请先选择 PDF 文件", Toast.LENGTH_SHORT).show();
-                return;
-            }
-            printSelectedFile();
-        });
-
-        btnCancelPrint.setOnClickListener(v -> {
-            ippManager.cancelPrint();
-            btnCancelPrint.setEnabled(false);
-        });
     }
 
-    /**
-     * 初始化文件选择 launcher
-     */
-    private void initFilePickerLauncher() {
-        filePickerLauncher = registerForActivityResult(
-                new ActivityResultContracts.StartActivityForResult(),
-                result -> {
-                    if (result.getResultCode() == RESULT_OK && result.getData() != null) {
-                        Uri uri = result.getData().getData();
-                        if (uri != null) {
-                            handleSelectedFile(uri);
-                        }
-                    }
-                }
-        );
-    }
-
-    /**
-     * 打开文件选择器
-     */
-    private void openFilePicker() {
-        Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
-        intent.setType(PDF_MIME_TYPE);
-        intent.addCategory(Intent.CATEGORY_OPENABLE);
-        filePickerLauncher.launch(intent);
-    }
-
-    /**
-     * 处理选择的文件
-     * @param uri 文件 URI
-     */
-    private void handleSelectedFile(Uri uri) {
-        try {
-            // 获取文件名
-            selectedFileName = getFileNameFromUri(uri);
-            tvSelectedFile.setText("已选择文件: " + selectedFileName);
-            
-            // 保存文件到私有目录
-            localFilePath = saveFileToPrivateDir(uri, selectedFileName);
-            Toast.makeText(this, "文件已保存到私有目录", Toast.LENGTH_SHORT).show();
-        } catch (IOException e) {
-            e.printStackTrace();
-            Toast.makeText(this, "文件保存失败: " + e.getMessage(), Toast.LENGTH_SHORT).show();
-        }
-    }
-
-    /**
-     * 从 URI 获取文件名
-     * @param uri 文件 URI
-     * @return 文件名
-     */
-    private String getFileNameFromUri(Uri uri) {
-        String fileName = "unknown.pdf";
-        ContentResolver resolver = getContentResolver();
-        Cursor cursor = resolver.query(uri, null, null, null, null);
-        if (cursor != null) {
-            int nameIndex = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME);
-            cursor.moveToFirst();
-            fileName = cursor.getString(nameIndex);
-            cursor.close();
-        }
-        return fileName;
-    }
-
-    /**
-     * 将文件保存到私有目录
-     * @param uri 文件 URI
-     * @param fileName 文件名
-     * @return 保存后的文件路径
-     * @throws IOException
-     */
-    private String saveFileToPrivateDir(Uri uri, String fileName) throws IOException {
-        ContentResolver resolver = getContentResolver();
-        InputStream inputStream = resolver.openInputStream(uri);
-        if (inputStream == null) {
-            throw new IOException("无法打开输入流");
-        }
-
-        // 创建私有目录文件
-        File privateDir = getFilesDir();
-        File outputFile = new File(privateDir, fileName);
-        OutputStream outputStream = new FileOutputStream(outputFile);
-
-        // 复制文件
-        byte[] buffer = new byte[4096];
-        int bytesRead;
-        while ((bytesRead = inputStream.read(buffer)) != -1) {
-            outputStream.write(buffer, 0, bytesRead);
-        }
-
-        // 关闭流
-        outputStream.close();
-        inputStream.close();
-
-        return outputFile.getAbsolutePath();
-    }
-
-    /**
-     * 打印选择的文件
-     */
-    private void printSelectedFile() {
-        tvPrintResult.setText("正在打印...");
-        
-        // 创建打印参数
-        PrintParams params = new PrintParams.Builder()
-                // 任务名
-                .setJobName("Test Print")
-                // 打印份数。可选设置，默认1
-                .setCopies(1)
-                // 打印范围。可选设置，默认打印所有
-//                .setRange(new IntRange(1, 16))
-                // 单双面。可选设置，默认单面，可选项需要获取打印机支持类型，PrinterSupported.sidesSupportedList
-                .setSides("one-sided") //one-sided two-sided-long-edge two-sided-short-edge
-                // 纸张样式。可选设置，默认A4，可选项需要获取打印机支持类型，PrinterSupported.mediaSupportedList
-                .setMedia("iso_a4_210x297mm")
-                // 文件类型。可选设置，默认pdf，可选项需要获取打印机支持类型，PrinterSupported.documentFormatSupportedList
-                .setDocumentFormat("application/pdf")
-                // 打印颜色。可选设置，默认Auto，可选项: auto、color、monochrome，如果需要选择color，则需要先获取打印机支持类型，PrinterSupported.colorSupported为true才可以
-                .setColorMode("auto")
-                // 方向。可选设置，默认Portrait，可选项需要获取打印机支持类型，PrinterSupported.orientationList
-                .setOrientation(Orientation.Portrait)
-                // 打印质量。可选设置，默认Normal，可选项需要获取打印机支持类型，PrinterSupported.qualityList
-                .setQuality(Quality.Normal)
-                // 压缩。可选设置，默认none，可选项需要获取打印机支持类型，PrinterSupported.compressList
-                .setCompression("none")
-                .build();
-
-        ippManager.getPrinterStatusAsync(this, new IppManager.PrinterStatusCallBack() {
-            @Override
-            public void onPrinterStatus(PrinterStatus status) {
-
-            }
-
-            @Override
-            public void onStatusError(String errorInfo) {
-
-            }
-        });
-
-        // 调用打印方法
-        ippManager.printFile(this, localFilePath, params, new IppManager.PrinterCallBack() {
-            @Override
-            public void onPrinterError(String errorInfo) {
-                runOnUiThread(() -> {
-                    tvPrintResult.setText("打印结果：打印失败 - " + errorInfo);
-                });
-            }
-
-            @Override
-            public void onPrinterSuccess() {
-                runOnUiThread(() -> tvPrintResult.setText("打印结果：打印成功"));
-            }
-
-            @Override
-            public void onPrinterStart() {
-                runOnUiThread(() -> btnCancelPrint.setEnabled(true));
-            }
-        });
-    }
-
-    /**
-     * 检查并请求所需的权限
-     */
     private void checkAndRequestPermissions() {
         List<String> permissionsToRequest = new ArrayList<>();
 
-        // 检查 INTERNET 权限
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.INTERNET) != PackageManager.PERMISSION_GRANTED) {
             permissionsToRequest.add(Manifest.permission.INTERNET);
         }
 
-        // 检查存储权限
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            // Android 13+ 使用 READ_MEDIA_IMAGES
             if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_MEDIA_IMAGES) != PackageManager.PERMISSION_GRANTED) {
                 permissionsToRequest.add(Manifest.permission.READ_MEDIA_IMAGES);
             }
         } else {
-            // Android 12- 使用 READ_EXTERNAL_STORAGE 和 WRITE_EXTERNAL_STORAGE
             if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
                 permissionsToRequest.add(Manifest.permission.READ_EXTERNAL_STORAGE);
             }
@@ -392,20 +116,15 @@ public class MainActivity extends AppCompatActivity {
             }
         }
 
-        // 请求所需的权限
         if (!permissionsToRequest.isEmpty()) {
             ActivityCompat.requestPermissions(this, permissionsToRequest.toArray(new String[0]), PERMISSION_REQUEST_CODE);
         }
 
-        // 检查并请求所有文件访问权限（Android 11+）
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             checkAndRequestManageExternalStoragePermission();
         }
     }
 
-    /**
-     * 检查并请求所有文件访问权限（Android 11+）
-     */
     private void checkAndRequestManageExternalStoragePermission() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             if (!android.os.Environment.isExternalStorageManager()) {
@@ -413,7 +132,7 @@ public class MainActivity extends AppCompatActivity {
                         .setTitle("需要所有文件访问权限")
                         .setMessage("为了正常使用打印机功能，需要您授予应用所有文件访问权限")
                         .setPositiveButton("去设置", (dialog, which) -> {
-                            Intent intent = new Intent(Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION);
+                            android.content.Intent intent = new android.content.Intent(Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION);
                             startActivityForResult(intent, MANAGE_EXTERNAL_STORAGE_REQUEST_CODE);
                         })
                         .setNegativeButton("取消", (dialog, which) -> {
@@ -424,9 +143,6 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    /**
-     * 处理权限请求结果
-     */
     @Override
     public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
@@ -447,11 +163,8 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    /**
-     * 处理所有文件访问权限请求结果
-     */
     @Override
-    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+    protected void onActivityResult(int requestCode, int resultCode, android.content.Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
         if (requestCode == MANAGE_EXTERNAL_STORAGE_REQUEST_CODE) {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
@@ -462,190 +175,5 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
         }
-    }
-
-    /**
-     * 查询指定的 SNMP OID
-     * @param key 预定义的 OID 键
-     * @param oid SNMP OID 值
-     */
-    private void querySnmpOid(String key, String oid) {
-        snmpManager.getByOid(oid, new SnmpManager.SnmpCallback() {
-            @Override
-            public void onSuccess(String result) {
-                String message = key + " (" + oid + "): " + result + "\n";
-                runOnUiThread(() -> appendResult(message));
-            }
-
-            @Override
-            public void onError(String error) {
-                String message = key + " (" + oid + "): 错误 - " + error + "\n";
-                runOnUiThread(() -> appendResult(message));
-            }
-        });
-    }
-
-    /**
-     * 追加结果到 EditText
-     * @param text 要追加的文本
-     */
-    private void appendResult(String text) {
-        resultEditText.append(text);
-        // 自动滚动到底部
-        resultEditText.post(() -> {
-            int scrollAmount = resultEditText.getLayout().getLineTop(resultEditText.getLineCount()) - resultEditText.getHeight();
-            if (scrollAmount > 0) {
-                resultEditText.scrollTo(0, scrollAmount);
-            } else {
-                resultEditText.scrollTo(0, 0);
-            }
-        });
-    }
-
-    /**
-     * 设置 SNMP 按钮点击监听器
-     */
-    private void setupSnmpButtonListeners() {
-        // 检查 IP 地址的方法
-        Runnable checkIp = () -> {
-            if (currentIp == null || currentIp.isEmpty()) {
-                Toast.makeText(MainActivity.this, "请先设置 IP 地址", Toast.LENGTH_SHORT).show();
-            }
-        };
-
-        // 就绪状态
-        btnSnmpReady.setOnClickListener(v -> {
-            checkIp.run();
-            if (currentIp != null && !currentIp.isEmpty()) {
-                appendResult("查询就绪状态...\n");
-                querySnmpOid(SnmpManager.READY, SnmpManager.OID_MAP.get(SnmpManager.READY));
-            }
-        });
-
-        // 空闲状态
-        btnSnmpIdle.setOnClickListener(v -> {
-            checkIp.run();
-            if (currentIp != null && !currentIp.isEmpty()) {
-                appendResult("查询空闲状态...\n");
-                querySnmpOid(SnmpManager.IDLE, SnmpManager.OID_MAP.get(SnmpManager.IDLE));
-            }
-        });
-
-        // 打印总计数
-        btnSnmpPrintTotal.setOnClickListener(v -> {
-            checkIp.run();
-            if (currentIp != null && !currentIp.isEmpty()) {
-                appendResult("查询打印总计数...\n");
-                querySnmpOid(SnmpManager.PRINT_TOTAL_COUNT, SnmpManager.OID_MAP.get(SnmpManager.PRINT_TOTAL_COUNT));
-            }
-        });
-
-        // 唤醒状态设置
-        btnSnmpWakeState.setOnClickListener(v -> {
-            checkIp.run();
-            if (currentIp != null && !currentIp.isEmpty()) {
-                appendResult("查询唤醒状态...\n");
-                querySnmpOid(SnmpManager.WAKE_STATE_SET, SnmpManager.OID_MAP.get(SnmpManager.WAKE_STATE_SET));
-            }
-        });
-
-        // 黄色耗材满值
-        btnSnmpYellowFull.setOnClickListener(v -> {
-            checkIp.run();
-            if (currentIp != null && !currentIp.isEmpty()) {
-                appendResult("查询黄色耗材满值...\n");
-                querySnmpOid(SnmpManager.YELLOW_FULL, SnmpManager.OID_MAP.get(SnmpManager.YELLOW_FULL));
-            }
-        });
-
-        // 黄色耗材剩余
-        btnSnmpYellowRemain.setOnClickListener(v -> {
-            checkIp.run();
-            if (currentIp != null && !currentIp.isEmpty()) {
-                appendResult("查询黄色耗材剩余...\n");
-                querySnmpOid(SnmpManager.YELLOW_REMAIN, SnmpManager.OID_MAP.get(SnmpManager.YELLOW_REMAIN));
-            }
-        });
-
-        // 红色耗材满值
-        btnSnmpRedFull.setOnClickListener(v -> {
-            checkIp.run();
-            if (currentIp != null && !currentIp.isEmpty()) {
-                appendResult("查询红色耗材满值...\n");
-                querySnmpOid(SnmpManager.RED_FULL, SnmpManager.OID_MAP.get(SnmpManager.RED_FULL));
-            }
-        });
-
-        // 红色耗材剩余
-        btnSnmpRedRemain.setOnClickListener(v -> {
-            checkIp.run();
-            if (currentIp != null && !currentIp.isEmpty()) {
-                appendResult("查询红色耗材剩余...\n");
-                querySnmpOid(SnmpManager.RED_REMAIN, SnmpManager.OID_MAP.get(SnmpManager.RED_REMAIN));
-            }
-        });
-
-        // 青色耗材满值
-        btnSnmpCyanFull.setOnClickListener(v -> {
-            checkIp.run();
-            if (currentIp != null && !currentIp.isEmpty()) {
-                appendResult("查询青色耗材满值...\n");
-                querySnmpOid(SnmpManager.CYAN_FULL, SnmpManager.OID_MAP.get(SnmpManager.CYAN_FULL));
-            }
-        });
-
-        // 青色耗材剩余
-        btnSnmpCyanRemain.setOnClickListener(v -> {
-            checkIp.run();
-            if (currentIp != null && !currentIp.isEmpty()) {
-                appendResult("查询青色耗材剩余...\n");
-                querySnmpOid(SnmpManager.CYAN_REMAIN, SnmpManager.OID_MAP.get(SnmpManager.CYAN_REMAIN));
-            }
-        });
-
-        // 黑色耗材满值
-        btnSnmpBlackFull.setOnClickListener(v -> {
-            checkIp.run();
-            if (currentIp != null && !currentIp.isEmpty()) {
-                appendResult("查询黑色耗材满值...\n");
-                querySnmpOid(SnmpManager.BLACK_FULL, SnmpManager.OID_MAP.get(SnmpManager.BLACK_FULL));
-            }
-        });
-
-        // 黑色耗材剩余
-        btnSnmpBlackRemain.setOnClickListener(v -> {
-            checkIp.run();
-            if (currentIp != null && !currentIp.isEmpty()) {
-                appendResult("查询黑色耗材剩余...\n");
-                querySnmpOid(SnmpManager.BLACK_REMAIN, SnmpManager.OID_MAP.get(SnmpManager.BLACK_REMAIN));
-            }
-        });
-
-        // 当前作业 ID
-        btnSnmpCurrentJob.setOnClickListener(v -> {
-            checkIp.run();
-            if (currentIp != null && !currentIp.isEmpty()) {
-                appendResult("查询当前作业 ID...\n");
-                querySnmpOid(SnmpManager.CURRENT_JOB_ID, SnmpManager.OID_MAP.get(SnmpManager.CURRENT_JOB_ID));
-            }
-        });
-
-        // 取消作业
-        btnSnmpCancelJob.setOnClickListener(v -> {
-            checkIp.run();
-            if (currentIp != null && !currentIp.isEmpty()) {
-                appendResult("执行取消作业...\n");
-                querySnmpOid(SnmpManager.CANCEL_JOB, SnmpManager.OID_MAP.get(SnmpManager.CANCEL_JOB));
-            }
-        });
-
-        // 缺纸状态
-        btnSnmpOutOfPaper.setOnClickListener(v -> {
-            checkIp.run();
-            if (currentIp != null && !currentIp.isEmpty()) {
-                appendResult("查询缺纸状态...\n");
-                querySnmpOid(SnmpManager.OUT_OF_PAPER, SnmpManager.OID_MAP.get(SnmpManager.OUT_OF_PAPER));
-            }
-        });
     }
 }

@@ -39,7 +39,7 @@ class IppJob(
     }
 
     companion object {
-        var defaultDelay: Duration = Duration.ofSeconds(1)
+        var defaultDelay: Duration = Duration.ofSeconds(3)
     }
 
     var useJobOwnerAsUserName: Boolean = false

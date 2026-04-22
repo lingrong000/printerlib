@@ -5,19 +5,22 @@ import static de.gmuth.ipp.attributes.TemplateAttributes.copies;
 import static de.gmuth.ipp.attributes.TemplateAttributes.jobName;
 import static de.gmuth.ipp.attributes.TemplateAttributes.orientationRequested;
 import static de.gmuth.ipp.attributes.TemplateAttributes.pageRanges;
+import static de.gmuth.ipp.attributes.TemplateAttributes.printScaling;
 
 import android.content.Context;
 import android.util.Log;
+
+import androidx.annotation.Keep;
 
 import com.cumtenn.printer.model.PrinterStatus;
 import com.cumtenn.printer.model.PrinterSupported;
 import com.cumtenn.printer.utils.AndroidLogHandler;
 import com.cumtenn.printer.utils.FileUtil;
+import com.cumtenn.printer.utils.PrintParamHelper;
 import com.cumtenn.printer.utils.PrinterReasonHelper;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -29,6 +32,8 @@ import de.gmuth.ipp.attributes.Compression;
 import de.gmuth.ipp.attributes.DocumentFormat;
 import de.gmuth.ipp.attributes.JobState;
 import de.gmuth.ipp.attributes.Media;
+import de.gmuth.ipp.attributes.MediaCollection;
+import de.gmuth.ipp.attributes.MediaSize;
 import de.gmuth.ipp.attributes.Orientation;
 import de.gmuth.ipp.attributes.PrintQuality;
 import de.gmuth.ipp.attributes.PrinterState;
@@ -49,6 +54,8 @@ public class IppManager {
     private int port = 631;
 
     private String printUri;
+
+    @Keep
     private volatile IppJob currentJob;
 
     private final ExecutorService executor = Executors.newCachedThreadPool();
@@ -154,25 +161,35 @@ public class IppManager {
     private boolean printSingleFile(Context context, File file, PrintParams params, PrinterCallBack callBack) {
 //        setupIppLogging();
 
+        MediaCollection mediaCollection = new MediaCollection();
+        MediaSize mediaSize = PrintParamHelper.SIZE_MAP.get(params.getMedia());
+        if (mediaSize == null) {
+            mediaSize = new MediaSize(21000, 29700);
+        }
+        mediaCollection.setSize(mediaSize);
+        mediaCollection.setType("stationery");
+
         IppAttributeBuilder[] builders = new IppAttributeBuilder[]{
                 copies(params.getCopies()),
                 jobName(file.getName()),
+                printScaling("auto"),
                 pageRanges(params.getRange()),
                 orientationRequested(Orientation.fromInt(params.getOrientation().getCode())),
-                Sides.fromKeyword(params.getSides()),
+                mediaCollection,
                 new ColorMode(params.getColorMode()),
                 PrintQuality.fromInt(params.getQuality().getCode()),
                 new DocumentFormat(params.getDocumentFormat()),
                 Compression.fromString(params.getCompression()),
-                new Media(params.getMedia())};
+                Sides.fromKeyword(params.getSides())};
 
         IppPrinter ippPrinter = new IppPrinter(printUri);
         currentJob = ippPrinter.printJob(file, builders, null);
+        Log.i(TAG, "print start");
         callBack.onPrinterStart();
         
         final boolean[] canceled = {false};
         currentJob.waitForTermination(
-            java.time.Duration.ofSeconds(1),
+            java.time.Duration.ofSeconds(3),
             Level.INFO,
             Level.INFO,
                 (state, printerState, stateReasons) -> {
@@ -236,25 +253,24 @@ public class IppManager {
     }
 
     public void cancelPrint() {
-//        setupIppLogging();
-        executor.execute(() -> {
-            try {
-                Log.i(TAG, "current job: " + currentJob);
-
-                if (currentJob != null && currentJob.isProcessing()) {
-                    currentJob.cancel();
-                } else {
-                    IppPrinter ippPrinter = new IppPrinter(printUri);
-                    for (IppJob ippJob: ippPrinter.getJobs(WhichJobs.Processing)) {
-                        Log.i(TAG, "job: " + ippJob);
-                        ippJob.cancel();
-                    }
-                }
-            } catch (Exception e) {
-                e.printStackTrace();
-                Log.e(TAG, "cancelPrint error: " + e);
-            }
-        });
+//        executor.execute(() -> {
+//            try {
+//                Log.i(TAG, "current job: " + currentJob);
+//
+//                if (currentJob != null && currentJob.isProcessing()) {
+//                    currentJob.cancel();
+//                } else {
+//                    IppPrinter ippPrinter = new IppPrinter(printUri);
+//                    for (IppJob ippJob: ippPrinter.getJobs(WhichJobs.Processing)) {
+//                        Log.i(TAG, "job: " + ippJob);
+//                        ippJob.cancel();
+//                    }
+//                }
+//            } catch (Exception e) {
+//                e.printStackTrace();
+//                Log.e(TAG, "cancelPrint error: " + e);
+//            }
+//        });
     }
 
     public PrinterSupported getPrinterSupported() {
@@ -339,11 +355,15 @@ public class IppManager {
     private void setupIppLogging() {
         Logger ippClientLogger = Logger.getLogger("de.gmuth.ipp.client.IppClient");
         ippClientLogger.setLevel(Level.FINEST);
-        ippClientLogger.addHandler(new AndroidLogHandler());
+        if (ippClientLogger.getHandlers().length == 0) {
+            ippClientLogger.addHandler(new AndroidLogHandler());
+        }
 
         Logger ippPrinterLogger = Logger.getLogger("de.gmuth.ipp.client.IppPrinter");
         ippPrinterLogger.setLevel(Level.FINEST);
-        ippPrinterLogger.addHandler(new AndroidLogHandler());
+        if (ippPrinterLogger.getHandlers().length == 0) {
+            ippPrinterLogger.addHandler(new AndroidLogHandler());
+        }
     }
 
 

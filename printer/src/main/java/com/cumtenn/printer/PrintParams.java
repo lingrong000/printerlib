@@ -82,7 +82,7 @@ public class PrintParams {
         private IntRange range;
 
         // 颜色
-        private String colorMode = "auto";
+        private String colorMode = "monochrome";
 
         // 方向
         private Orientation orientation = Orientation.Portrait;

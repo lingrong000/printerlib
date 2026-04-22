@@ -12,7 +12,7 @@ import java.util.List;
 
 public class FileUtil {
     private static final String TAG = "FileUtil";
-    public static final int CHUNK_PAGES = 20;
+    public static final int CHUNK_PAGES = 50;
 
     public static List<File> splitPdf(File inputFile, File outputDir) throws IOException {
         if (inputFile == null || !inputFile.exists()) {
