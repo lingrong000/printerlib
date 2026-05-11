@@ -40,6 +40,7 @@ import de.gmuth.ipp.attributes.PrinterState;
 import de.gmuth.ipp.attributes.Sides;
 import de.gmuth.ipp.client.IppJob;
 import de.gmuth.ipp.client.IppPrinter;
+import de.gmuth.ipp.client.IppValueSupport;
 import de.gmuth.ipp.client.WhichJobs;
 import de.gmuth.ipp.core.IppAttributeBuilder;
 import de.gmuth.ipp.core.IppString;
@@ -58,6 +59,9 @@ public class IppManager {
     @Keep
     private volatile IppJob currentJob;
 
+    @Keep
+    private volatile IppPrinter mIppPrinter;
+
     private final ExecutorService executor = Executors.newCachedThreadPool();
 
     private IppManager() {
@@ -74,6 +78,12 @@ public class IppManager {
         return instance;
     }
 
+    private synchronized IppPrinter getIppPrinter() {
+        if (mIppPrinter == null) {
+            mIppPrinter = new IppPrinter(printUri);
+        }
+        return mIppPrinter;
+    }
 
     public void printFile(Context context, String filePath, PrintParams params, PrinterCallBack callBack) {
         if (!isIpAddressValid(ip)) {
@@ -112,6 +122,7 @@ public class IppManager {
 
                 // 打印机状态检查
                 PrinterStatus status = getPrinterStatus(context);
+                Log.i(TAG, "status: " + status);
                 if (status.getState() != PrinterStatus.State.Idle) {
                     callBack.onPrinterError("Printing, please wait");
                     return;
@@ -150,8 +161,7 @@ public class IppManager {
                 } else{
                     callBack.onPrinterSuccess();
                 }
-
-            }catch (Exception e) {
+            } catch (Exception e) {
                 Log.i(TAG, "Print error: " + e);
                 callBack.onPrinterError("Print error: " + e);
             }
@@ -182,11 +192,12 @@ public class IppManager {
                 Compression.fromString(params.getCompression()),
                 Sides.fromKeyword(params.getSides())};
 
-        IppPrinter ippPrinter = new IppPrinter(printUri);
+        IppPrinter ippPrinter = getIppPrinter();
         currentJob = ippPrinter.printJob(file, builders, null);
+
         Log.i(TAG, "print start");
         callBack.onPrinterStart();
-        
+
         final boolean[] canceled = {false};
         currentJob.waitForTermination(
             java.time.Duration.ofSeconds(3),
@@ -271,6 +282,21 @@ public class IppManager {
 //                Log.e(TAG, "cancelPrint error: " + e);
 //            }
 //        });
+//        executor.execute(() -> {
+//            try {
+//                IppPrinter ippPrinter = getIppPrinter();
+//                for (IppJob ippJob : ippPrinter.getJobs()) {
+//                    Log.i(TAG, "job: " + ippJob);
+//                }
+////                IppValueSupport.INSTANCE.setEnabled(false);
+////                if (currentJob != null) {
+////                    currentJob.close();
+////                }
+//            } catch (Exception e) {
+//                e.printStackTrace();
+//                Log.e(TAG, "cancelPrint error: " + e);
+//            }
+//        });
     }
 
     public PrinterSupported getPrinterSupported() {
@@ -280,7 +306,7 @@ public class IppManager {
         // 设置日志级别和Handler以打印IPP请求和响应到Logcat
 //        setupIppLogging();
 
-        IppPrinter ippPrinter = new IppPrinter(printUri);
+        IppPrinter ippPrinter = getIppPrinter();
 
         PrinterSupported supported = new PrinterSupported();
         supported.setMediaSupportedList(ippPrinter.getMediaSupported());
@@ -318,7 +344,8 @@ public class IppManager {
         // 设置日志级别和Handler以打印IPP请求和响应到Logcat
 //        setupIppLogging();
 
-        IppPrinter ippPrinter = new IppPrinter(printUri);
+        IppPrinter ippPrinter = getIppPrinter();
+        ippPrinter.updateStateAttributes();
 
         PrinterStatus status = new PrinterStatus();
         status.setState(ippPrinter.getState());
@@ -368,9 +395,11 @@ public class IppManager {
 
 
     public void setIp(String ip) {
-        this.ip = ip;
-        printUri = "ipp://" + ip + ":" + port + "/ipp/print";
-//        ippPrinter = new IppPrinter(printUri);
+        if (ip != null && !ip.equals(this.ip)) {
+            this.ip = ip;
+            printUri = "ipp://" + ip + ":" + port + "/ipp/print";
+            mIppPrinter = null;
+        }
     }
 
     public String getIp() {
@@ -388,6 +417,7 @@ public class IppManager {
     public void setPort(int port) {
         this.port = port;
         printUri = "ipp://" + ip + ":" + port + "/ipp/print";
+        mIppPrinter = null;
     }
 
     public void release() {

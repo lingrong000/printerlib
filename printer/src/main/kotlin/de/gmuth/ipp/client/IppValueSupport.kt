@@ -16,10 +16,14 @@ object IppValueSupport {
 
     private val logger = getLogger(javaClass.name)
 
+    @Volatile
+    var enabled: Boolean = true
+
     fun checkIfValueIsSupported(
         printerAttributes: IppAttributesGroup, attribute: IppAttribute<*>,
         throwIfSupportedAttributeIsNotAvailable: Boolean
     ) {
+        if (!enabled) return
         val supportedAttribute = printerAttributes["${attribute.name}-supported"]
         if (supportedAttribute == null) logger.warning { "${attribute.name}-supported not available in printer attributes" }
         else checkIfValueIsSupported(printerAttributes, attribute.name, attribute.value as Any, throwIfSupportedAttributeIsNotAvailable)
@@ -31,6 +35,7 @@ object IppValueSupport {
         value: Any,
         throwIfSupportedAttributeIsNotAvailable: Boolean
     ) {
+        if (!enabled) return
         require(printerAttributes.tag == Printer) { "Printer attributes group expected" }
         if (printerAttributes.isEmpty()) return
 

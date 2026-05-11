@@ -142,7 +142,7 @@ public class PrintFragment extends Fragment {
 
         binding.btnCancelPrint.setOnClickListener(v -> {
             ippManager.cancelPrint();
-            binding.btnCancelPrint.setEnabled(false);
+//            binding.btnCancelPrint.setEnabled(false);
         });
     }
 

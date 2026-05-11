@@ -56,7 +56,7 @@ publishing {
                 from(components["release"])
                 groupId = "com.github.lingrong000"
                 artifactId = "printer"
-                version = "v1.1.6"
+                version = "v1.1.8"
             }
         }
     }
