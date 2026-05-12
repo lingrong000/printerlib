@@ -15,7 +15,7 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="就绪状态"
+            android:text="打印机状态"
             android:textSize="14sp"
             android:backgroundTint="#2196F3"
             android:textColor="#FFFFFF"
@@ -25,7 +25,7 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="空闲状态"
+            android:text="打印状态"
             android:textSize="14sp"
             android:backgroundTint="#2196F3"
             android:textColor="#FFFFFF"
@@ -53,11 +53,38 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="唤醒状态设置"
+            android:text="唤醒状态查询"
             android:textSize="14sp"
             android:backgroundTint="#2196F3"
             android:textColor="#FFFFFF"
             android:layout_marginEnd="4dp" />
+        <Button
+            android:id="@+id/btn_snmp_wake_state_set_sleep"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="休眠打印机"
+            android:textSize="14sp"
+            android:backgroundTint="#2196F3"
+            android:textColor="#FFFFFF"
+            android:layout_marginEnd="4dp" />
+        <Button
+            android:id="@+id/btn_snmp_wake_state_set_up"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="唤醒打印机"
+            android:textSize="14sp"
+            android:backgroundTint="#2196F3"
+            android:textColor="#FFFFFF"
+            android:layout_marginEnd="4dp" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_marginBottom="8dp">
         <Button
             android:id="@+id/btn_snmp_current_job"
             android:layout_width="0dp"

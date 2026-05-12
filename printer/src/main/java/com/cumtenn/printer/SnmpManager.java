@@ -7,9 +7,7 @@ import androidx.annotation.NonNull;
 import org.snmp4j.CommunityTarget;
 import org.snmp4j.PDU;
 import org.snmp4j.Snmp;
-import org.snmp4j.TransportMapping;
 import org.snmp4j.event.ResponseEvent;
-import org.snmp4j.mp.SnmpConstants;
 import org.snmp4j.smi.GenericAddress;
 import org.snmp4j.smi.OID;
 import org.snmp4j.smi.OctetString;
@@ -26,10 +24,12 @@ import java.util.concurrent.Executors;
 
 public class SnmpManager {
 
-    public static final String READY = "READY";                     // 0x80 就绪
-    public static final String IDLE = "IDLE";                       // 3 idle 就绪
+    public static final String PRINTER_STATUS = "PRINTER_STATUS";   // 打印机状态
+    public static final String PRINT_STATE = "PRINT_STATE";         // 打印状态 3 idle; 4 processing; 5 stopped
     public static final String PRINT_TOTAL_COUNT = "PRINT_TOTAL_COUNT"; // 打印机总计数
-    public static final String WAKE_STATE_SET = "WAKE_STATE_SET";   // 1 待机, 2 睡眠；set 1 唤醒打印机
+    public static final String WAKE_STATE_SET_UP = "WAKE_STATE_SET_UP";   // 唤醒打印机
+    public static final String WAKE_STATE_SET_SLEEP = "WAKE_STATE_SET_SLEEP";   // 使打印机休眠
+    public static final String WAKE_STATE_GET = "WAKE_STATE_GET";   // 获取状态, 1 待机, 2 睡眠
     public static final String YELLOW_FULL = "YELLOW_FULL";         // 黄色耗材满的数值
     public static final String YELLOW_REMAIN = "YELLOW_REMAIN";     // 黄色耗材还剩的数值
     public static final String RED_FULL = "RED_FULL";               // 红色耗材满的数值
@@ -79,10 +79,12 @@ public class SnmpManager {
     public static final Map<String, String> OID_MAP;
     static {
         Map<String, String> m = new HashMap<>();
-        m.put(READY, "1.3.6.1.2.1.25.3.5.1.2.1");
-        m.put(IDLE, "1.3.6.1.2.1.25.3.5.1.1.1");
+        m.put(PRINTER_STATUS, "1.3.6.1.2.1.25.3.5.1.2.1");
+        m.put(PRINT_STATE, "1.3.6.1.2.1.25.3.5.1.1.1");
         m.put(PRINT_TOTAL_COUNT, "1.3.6.1.2.1.43.10.2.1.4.1.1");
-        m.put(WAKE_STATE_SET, "1.3.6.1.4.1.11.2.3.9.4.2.1.1.1.2.0");
+        m.put(WAKE_STATE_GET, "1.3.6.1.4.1.11.2.3.9.4.2.1.1.1.2.0");
+        m.put(WAKE_STATE_SET_UP, "1.3.6.1.4.1.11.2.3.9.4.2.1.1.1.2.1");
+        m.put(WAKE_STATE_SET_SLEEP, "1.3.6.1.4.1.11.2.3.9.4.2.1.1.1.2.2");
         m.put(YELLOW_FULL, "1.3.6.1.2.1.43.11.1.1.8.1.1");
         m.put(YELLOW_REMAIN, "1.3.6.1.2.1.43.11.1.1.9.1.1");
         m.put(RED_FULL, "1.3.6.1.2.1.43.11.1.1.8.1.2");

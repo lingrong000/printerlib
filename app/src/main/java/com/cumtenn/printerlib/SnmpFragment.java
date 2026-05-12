@@ -58,155 +58,92 @@ public class SnmpFragment extends Fragment {
 
     private void setupButtonListeners() {
         binding.btnSnmpReady.setOnClickListener(v -> {
-            String ip = sharedViewModel.getIpValue();
-            if (ip == null || ip.isEmpty()) {
-                Toast.makeText(requireContext(), "请先设置 IP 地址", Toast.LENGTH_SHORT).show();
-                return;
-            }
-            appendResult("查询就绪状态...\n");
-            querySnmpOid(SnmpManager.READY, SnmpManager.OID_MAP.get(SnmpManager.READY));
+            appendResult("查询打印机状态...\n");
+            querySnmpOid(SnmpManager.PRINTER_STATUS, SnmpManager.OID_MAP.get(SnmpManager.PRINTER_STATUS));
         });
 
         binding.btnSnmpIdle.setOnClickListener(v -> {
-            String ip = sharedViewModel.getIpValue();
-            if (ip == null || ip.isEmpty()) {
-                Toast.makeText(requireContext(), "请先设置 IP 地址", Toast.LENGTH_SHORT).show();
-                return;
-            }
-            appendResult("查询空闲状态...\n");
-            querySnmpOid(SnmpManager.IDLE, SnmpManager.OID_MAP.get(SnmpManager.IDLE));
+            appendResult("查询打印状态...\n");
+            querySnmpOid(SnmpManager.PRINT_STATE, SnmpManager.OID_MAP.get(SnmpManager.PRINT_STATE));
         });
 
         binding.btnSnmpPrintTotal.setOnClickListener(v -> {
-            String ip = sharedViewModel.getIpValue();
-            if (ip == null || ip.isEmpty()) {
-                Toast.makeText(requireContext(), "请先设置 IP 地址", Toast.LENGTH_SHORT).show();
-                return;
-            }
             appendResult("查询打印总计数...\n");
             querySnmpOid(SnmpManager.PRINT_TOTAL_COUNT, SnmpManager.OID_MAP.get(SnmpManager.PRINT_TOTAL_COUNT));
         });
 
         binding.btnSnmpWakeState.setOnClickListener(v -> {
-            String ip = sharedViewModel.getIpValue();
-            if (ip == null || ip.isEmpty()) {
-                Toast.makeText(requireContext(), "请先设置 IP 地址", Toast.LENGTH_SHORT).show();
-                return;
-            }
             appendResult("查询唤醒状态...\n");
-            querySnmpOid(SnmpManager.WAKE_STATE_SET, SnmpManager.OID_MAP.get(SnmpManager.WAKE_STATE_SET));
+            querySnmpOid(SnmpManager.WAKE_STATE_GET, SnmpManager.OID_MAP.get(SnmpManager.WAKE_STATE_GET));
+        });
+
+        binding.btnSnmpWakeStateSetSleep.setOnClickListener(v -> {
+            appendResult("休眠打印机...\n");
+            querySnmpOid(SnmpManager.WAKE_STATE_SET_SLEEP, SnmpManager.OID_MAP.get(SnmpManager.WAKE_STATE_SET_SLEEP));
+        });
+
+        binding.btnSnmpWakeStateSetUp.setOnClickListener(v -> {
+            appendResult("唤醒打印机...\n");
+            querySnmpOid(SnmpManager.WAKE_STATE_SET_UP, SnmpManager.OID_MAP.get(SnmpManager.WAKE_STATE_SET_UP));
         });
 
         binding.btnSnmpYellowFull.setOnClickListener(v -> {
-            String ip = sharedViewModel.getIpValue();
-            if (ip == null || ip.isEmpty()) {
-                Toast.makeText(requireContext(), "请先设置 IP 地址", Toast.LENGTH_SHORT).show();
-                return;
-            }
             appendResult("查询黄色耗材满值...\n");
             querySnmpOid(SnmpManager.YELLOW_FULL, SnmpManager.OID_MAP.get(SnmpManager.YELLOW_FULL));
         });
 
         binding.btnSnmpYellowRemain.setOnClickListener(v -> {
-            String ip = sharedViewModel.getIpValue();
-            if (ip == null || ip.isEmpty()) {
-                Toast.makeText(requireContext(), "请先设置 IP 地址", Toast.LENGTH_SHORT).show();
-                return;
-            }
             appendResult("查询黄色耗材剩余...\n");
             querySnmpOid(SnmpManager.YELLOW_REMAIN, SnmpManager.OID_MAP.get(SnmpManager.YELLOW_REMAIN));
         });
 
         binding.btnSnmpRedFull.setOnClickListener(v -> {
-            String ip = sharedViewModel.getIpValue();
-            if (ip == null || ip.isEmpty()) {
-                Toast.makeText(requireContext(), "请先设置 IP 地址", Toast.LENGTH_SHORT).show();
-                return;
-            }
             appendResult("查询红色耗材满值...\n");
             querySnmpOid(SnmpManager.RED_FULL, SnmpManager.OID_MAP.get(SnmpManager.RED_FULL));
         });
 
         binding.btnSnmpRedRemain.setOnClickListener(v -> {
-            String ip = sharedViewModel.getIpValue();
-            if (ip == null || ip.isEmpty()) {
-                Toast.makeText(requireContext(), "请先设置 IP 地址", Toast.LENGTH_SHORT).show();
-                return;
-            }
             appendResult("查询红色耗材剩余...\n");
             querySnmpOid(SnmpManager.RED_REMAIN, SnmpManager.OID_MAP.get(SnmpManager.RED_REMAIN));
         });
 
         binding.btnSnmpCyanFull.setOnClickListener(v -> {
-            String ip = sharedViewModel.getIpValue();
-            if (ip == null || ip.isEmpty()) {
-                Toast.makeText(requireContext(), "请先设置 IP 地址", Toast.LENGTH_SHORT).show();
-                return;
-            }
             appendResult("查询青色耗材满值...\n");
             querySnmpOid(SnmpManager.CYAN_FULL, SnmpManager.OID_MAP.get(SnmpManager.CYAN_FULL));
         });
 
         binding.btnSnmpCyanRemain.setOnClickListener(v -> {
-            String ip = sharedViewModel.getIpValue();
-            if (ip == null || ip.isEmpty()) {
-                Toast.makeText(requireContext(), "请先设置 IP 地址", Toast.LENGTH_SHORT).show();
-                return;
-            }
             appendResult("查询青色耗材剩余...\n");
             querySnmpOid(SnmpManager.CYAN_REMAIN, SnmpManager.OID_MAP.get(SnmpManager.CYAN_REMAIN));
         });
 
         binding.btnSnmpBlackFull.setOnClickListener(v -> {
-            String ip = sharedViewModel.getIpValue();
-            if (ip == null || ip.isEmpty()) {
-                Toast.makeText(requireContext(), "请先设置 IP 地址", Toast.LENGTH_SHORT).show();
-                return;
-            }
             appendResult("查询黑色耗材满值...\n");
             querySnmpOid(SnmpManager.BLACK_FULL, SnmpManager.OID_MAP.get(SnmpManager.BLACK_FULL));
         });
 
         binding.btnSnmpBlackRemain.setOnClickListener(v -> {
-            String ip = sharedViewModel.getIpValue();
-            if (ip == null || ip.isEmpty()) {
-                Toast.makeText(requireContext(), "请先设置 IP 地址", Toast.LENGTH_SHORT).show();
-                return;
-            }
             appendResult("查询黑色耗材剩余...\n");
             querySnmpOid(SnmpManager.BLACK_REMAIN, SnmpManager.OID_MAP.get(SnmpManager.BLACK_REMAIN));
         });
 
         binding.btnSnmpCurrentJob.setOnClickListener(v -> {
-            String ip = sharedViewModel.getIpValue();
-            if (ip == null || ip.isEmpty()) {
-                Toast.makeText(requireContext(), "请先设置 IP 地址", Toast.LENGTH_SHORT).show();
-                return;
-            }
             appendResult("查询当前作业 ID...\n");
             querySnmpOid(SnmpManager.CURRENT_JOB_ID, SnmpManager.OID_MAP.get(SnmpManager.CURRENT_JOB_ID));
         });
 
         binding.btnSnmpCancelJob.setOnClickListener(v -> {
-            String ip = sharedViewModel.getIpValue();
-            if (ip == null || ip.isEmpty()) {
-                Toast.makeText(requireContext(), "请先设置 IP 地址", Toast.LENGTH_SHORT).show();
-                return;
-            }
             appendResult("执行取消作业...\n");
             querySnmpOid(SnmpManager.CANCEL_JOB, SnmpManager.OID_MAP.get(SnmpManager.CANCEL_JOB));
         });
 
         binding.btnSnmpOutOfPaper.setOnClickListener(v -> {
-            String ip = sharedViewModel.getIpValue();
-            if (ip == null || ip.isEmpty()) {
-                Toast.makeText(requireContext(), "请先设置 IP 地址", Toast.LENGTH_SHORT).show();
-                return;
-            }
             appendResult("查询缺纸状态...\n");
             querySnmpOid(SnmpManager.OUT_OF_PAPER, SnmpManager.OID_MAP.get(SnmpManager.OUT_OF_PAPER));
         });
     }
+
+
 
     private void querySnmpOid(String key, String oid) {
         snmpManager.getByOid(oid, new SnmpManager.SnmpCallback() {

@@ -81,6 +81,7 @@ public class IppManager {
     private synchronized IppPrinter getIppPrinter() {
         if (mIppPrinter == null) {
             mIppPrinter = new IppPrinter(printUri);
+            mIppPrinter.getIppClient().setDisconnectAfterHttpPost(true);
         }
         return mIppPrinter;
     }
@@ -155,7 +156,7 @@ public class IppManager {
                     }
                 }
                 // 打印完成后，检查打印机是否有报错
-                status = getPrinterStatus(context);
+                status = getPrinterStatus(getIppPrinter(), context);
                 if (status.isError()) {
                     callBack.onPrinterError(status.getReasonTrans());
                 } else{
@@ -347,6 +348,16 @@ public class IppManager {
         IppPrinter ippPrinter = getIppPrinter();
         ippPrinter.updateStateAttributes();
 
+        return getPrinterStatus(ippPrinter, context);
+    }
+
+    /**
+     * 使用保存的状态，不去重新请求
+     * @param ippPrinter
+     * @param context
+     * @return
+     */
+    private PrinterStatus getPrinterStatus(IppPrinter ippPrinter, Context context) {
         PrinterStatus status = new PrinterStatus();
         status.setState(ippPrinter.getState());
         IppString stateMsg = ippPrinter.getStateMessage();
@@ -359,7 +370,6 @@ public class IppManager {
         if (!reasonList.isEmpty()) {
             status.setError(!reasonList.get(0).equals("none"));
         }
-
         return status;
     }
 

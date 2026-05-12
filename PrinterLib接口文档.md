@@ -1,10 +1,10 @@
 # PrinterLib 接口文档
 
-## 1. Android Studio 引入 AAR 文件
+## 1. Android Studio 引入
 
 ### 1.1 本地引入方式
 
-1. 将 `printer.aar` 文件复制到项目的 `libs` 目录下（如果没有该目录，手动创建）
+1. 将 `printer_1_1_9.aar` 文件复制到项目的 `libs` 目录下（如果没有该目录，手动创建）
 
 2. 在模块的 `build.gradle` 文件中添加以下配置：
 
@@ -20,7 +20,10 @@ android {
 
 dependencies {
     // 其他依赖...
-    implementation(name: 'printer', ext: 'aar')
+    implementation(fileTree("libs") { include("*.aar") })
+    implementation("org.snmp4j:snmp4j:3.9.6")
+    implementation("com.tom-roush:pdfbox-android:2.0.27.0")
+    implementation("org.jetbrains.kotlin:kotlin-stdlib:1.9.25")
 }
 ```
 
@@ -44,7 +47,7 @@ repositories {
 ```groovy
 dependencies {
     // 其他依赖...
-    implementation 'com.github.lingrong000:printerlib:v1.1.1'
+    implementation 'com.github.lingrong000:printerlib:v1.1.9'
 }
 ```
 
@@ -73,17 +76,17 @@ PrintParams params = new PrintParams.Builder()
     // 任务名
     .setJobName("Test Print")
     // 打印份数。可选设置，默认1
-    .setCopies(2)
-    // 打印范围。必须设置，打印所有，则设置new IntRange(0, 文件页数-1)
-    .setRange(new IntRange(0, 16))
+    .setCopies(1)
+    // 打印范围。可选设置，默认打印所有
+    .setRange(new IntRange(1, 16))
     // 单双面。可选设置，默认单面，可选项需要获取打印机支持类型，PrinterSupported.sidesSupportedList
     .setSides("one-sided")
     // 纸张样式。可选设置，默认A4，可选项需要获取打印机支持类型，PrinterSupported.mediaSupportedList
     .setMedia("iso_a4_210x297mm")
-    // 文件类型。可选设置，默认pdf，可选项需要获取打印机支持类型，PrinterSupported.documentFormatSupportedList
+    // 文件类型。可选设置，默认application/pdf，可选项需要获取打印机支持类型，PrinterSupported.documentFormatSupportedList
     .setDocumentFormat("application/pdf")
-    // 打印颜色。可选设置，默认Auto，可选项: auto、color、monochrome，如果需要选择color，则需要先获取打印机支持类型，PrinterSupported.colorSupported为true才可以
-    .setColorMode("auto")
+    // 打印颜色。可选设置，默认monochrome，可选项: auto、color、monochrome，如果需要选择color，则需要先获取打印机支持类型，PrinterSupported.colorSupported为true才可以
+    .setColorMode("monochrome")
     // 方向。可选设置，默认Portrait，可选项需要获取打印机支持类型，PrinterSupported.orientationList
     .setOrientation(Orientation.Portrait)
     // 打印质量。可选设置，默认Normal，可选项需要获取打印机支持类型，PrinterSupported.qualityList
@@ -121,7 +124,6 @@ manager.setPort(631);
 // 创建打印参数
 PrintParams params = new PrintParams.Builder()
     .setJobName("Test Print")
-    .setRange(new IntRange(0, 16))
     .build();
 
 // 调用打印方法
@@ -136,6 +138,10 @@ manager.printFile(context, filePath, params, new IppManager.PrinterCallBack() {
     public void onPrinterSuccess() {
         // 打印成功回调
         Log.i("PrintSuccess", "打印完成");
+    }
+    
+    @Override
+    public void onPrinterStart() {
     }
 });
 ```
@@ -169,13 +175,13 @@ manager.getPrinterSupportedAsync(new IppManager.PrinterSupportedCallBack() {
 
 ```java
 // 同步方式
-PrinterStatus status = manager.getPrinterStatus();
+PrinterStatus status = manager.getPrinterStatus(context);
 PrinterState state = status.getState();
 String stateMessage = status.getStateMessage();
 boolean isError = status.isError();
 
 // 异步方式
-manager.getPrinterStatusAsync(new IppManager.PrinterStatusCallBack() {
+manager.getPrinterStatusAsync(context, new IppManager.PrinterStatusCallBack() {
     @Override
     public void onPrinterStatus(PrinterStatus status) {
         // 处理打印机状态
@@ -208,6 +214,7 @@ manager.release();
 public interface PrinterCallBack {
     void onPrinterError(String errorInfo);              // 打印错误回调
     void onPrinterSuccess();                            // 打印成功回调
+    void onPrinterStart();								// 开始打印
 }
 ```
 
@@ -245,10 +252,13 @@ public interface PrinterStatusCallBack {
 
 ```java
 // 打印机状态相关
-SnmpManager.READY              // 就绪状态 OID
-SnmpManager.IDLE               // 空闲状态 OID
+SnmpManager.PRINTER_STATUS     // 打印机状态 OID
+SnmpManager.PRINT_STATE        // 打印状态 OID
 SnmpManager.PRINT_TOTAL_COUNT  // 打印总计数 OID
-SnmpManager.WAKE_STATE_SET     // 唤醒状态设置 OID
+SnmpManager.WAKE_STATE_GET     // 获取唤醒/休眠状态 OID
+SnmpManager.WAKE_STATE_SET_UP     // 唤醒打印机 OID
+SnmpManager.WAKE_STATE_SET_SLEEP  // 使打印机休眠 OID
+SnmpManager.OUT_OF_PAPER       // 缺纸状态 OID
 
 // 耗材相关
 SnmpManager.YELLOW_FULL        // 黄色耗材满值 OID
@@ -260,16 +270,37 @@ SnmpManager.CYAN_REMAIN        // 青色耗材剩余 OID
 SnmpManager.BLACK_FULL         // 黑色耗材满值 OID
 SnmpManager.BLACK_REMAIN       // 黑色耗材剩余 OID
 
+// 其他
+SnmpManager.CURRENT_JOB_ID     // 当前作业 ID OID
+SnmpManager.CANCEL_JOB         // 取消作业 OID
+
 // SNMP 版本常量
 SnmpManager.SNMP_V1            // SNMP 版本 1
 SnmpManager.SNMP_V2C           // SNMP 版本 2c（默认）
 SnmpManager.SNMP_V3            // SNMP 版本 3
-
-// 其他
-SnmpManager.CURRENT_JOB_ID     // 当前作业 ID OID
-SnmpManager.CANCEL_JOB         // 取消作业 OID
-SnmpManager.OUT_OF_PAPER       // 缺纸状态 OID
 ```
+
+**OID 返回结果说明：**
+
+| 常量名 | 说明 | 返回结果示例与说明 |
+|--------|------|-------------|
+| `PRINTER_STATUS` | 打印机状态 | 0X80 就绪<br />0x01 开盖<br />0x02 打印过程中纸盒无纸<br />0x03 打印过程中进纸失败<br />0x04 卡纸<br />0x05 激光器异常<br />0x09 硒鼓未安装<br />0x0a 硒鼓寿命结束<br />0x0c 温度异常<br />0x0d 纸盒无纸 |
+| `PRINT_STATE` | 打印状态 | 3 idle<br />4 processing<br />5 stopped |
+| `PRINT_TOTAL_COUNT` | 打印总计数 | 已打印纸张数 |
+| `WAKE_STATE_GET` | 获取唤醒/休眠状态 | 1: 待机<br />2: 休眠 |
+| `WAKE_STATE_SET_UP` | 唤醒打印机 | 唤醒成功返回1 |
+| `WAKE_STATE_SET_SLEEP` | 使打印机休眠 | 休眠成功返回2 |
+| `OUT_OF_PAPER` | 缺纸状态 | 1 缺纸<br/>0 未缺纸 |
+| `YELLOW_FULL` | 黄色耗材满值 | 黑白打印机返回0 |
+| `YELLOW_REMAIN` | 黄色耗材剩余 | 同上 |
+| `RED_FULL` | 红色耗材满值 | 同上 |
+| `RED_REMAIN` | 红色耗材剩余 | 同上 |
+| `CYAN_FULL` | 青色耗材满值 | 同上 |
+| `CYAN_REMAIN` | 青色耗材剩余 | 同上 |
+| `BLACK_FULL` | 黑色耗材满值 | 满值时可打印数量 |
+| `BLACK_REMAIN` | 黑色耗材剩余 | 获取到的值需要除以100(如:获取9860，实际百分比为9860/100=98.6%) |
+| `CURRENT_JOB_ID` | 当前作业 ID |  |
+| `CANCEL_JOB` | 取消作业 |  |
 
 #### 2.2.3 核心方法
 
@@ -305,11 +336,11 @@ manager.setVersion(SnmpManager.SNMP_V2C);
 ##### 通过预定义 Key 获取打印机状态
 
 ```java
-manager.getByKey(SnmpManager.READY, new SnmpManager.SnmpCallback() {
+manager.getByKey(SnmpManager.PRINTER_STATUS, new SnmpManager.SnmpCallback() {
     @Override
     public void onSuccess(@NonNull String result) {
         // 处理成功结果
-        Log.i("SNMP", "打印机就绪状态: " + result);
+        Log.i("SNMP", "打印机状态: " + result);
     }
 
     @Override
@@ -380,12 +411,12 @@ ippManager.getPrinterSupportedAsync(new IppManager.PrinterSupportedCallBack() {
 PrintParams params = new PrintParams.Builder()
                 .setJobName("Test Print")
                 .setCopies(2)
-                .setRange(new IntRange(0, 16)) 
+                .setRange(new IntRange(1, 16)) 
                 .build();
 
 // 打印文件
 String filePath = "sdcard/Download/test.pdf";
-ippManager.printFile(getApplicationContext(), filePath, params, new IppManager.PrinterCallBack() {
+ippManager.printFile(context, filePath, params, new IppManager.PrinterCallBack() {
     @Override
     public void onPrinterError(String errorInfo) {
         Log.e("Print", "打印失败: " + errorInfo);
@@ -395,10 +426,14 @@ ippManager.printFile(getApplicationContext(), filePath, params, new IppManager.P
     public void onPrinterSuccess() {
         Log.i("Print", "打印成功");
     }
+    
+    @Override
+    public void onPrinterStart() {
+    }
 });
 
 // 异步获取打印机状态
-ippManager.getPrinterStatusAsync(new IppManager.PrinterStatusCallBack() {
+ippManager.getPrinterStatusAsync(context, new IppManager.PrinterStatusCallBack() {
     @Override
     public void onPrinterStatus(PrinterStatus status) {
         Log.i("Print", "打印机状态: " + status.getStateMessage());
@@ -423,7 +458,7 @@ snmpManager.setCommunity("public");
 snmpManager.getByKey(SnmpManager.PRINT_TOTAL_COUNT, new SnmpManager.SnmpCallback() {
     @Override
     public void onSuccess(@NonNull String result) {
-        Log.i("SNMP", "总打印页数: " + result);
+        Log.i("SNMP", "打印机总计数: " + result);
     }
 
     @Override
@@ -485,12 +520,10 @@ snmpManager.getByKey(SnmpManager.BLACK_REMAIN, new SnmpManager.SnmpCallback() {
 
 ## 6. 更新日志
 
-- **版本 1.1.1**：
+- **版本 1.1.9**：
   - 新增 JitPack 引入方式
   - 新增 SnmpManager.setVersion() 方法，支持设置 SNMP 版本
-  - 优化 SnmpManager.performSnmpGet() 方法，使用 try-with-resources 语法
   - 增强异常处理和错误信息
-
 - **版本 1.0.0**：
   - 初始版本
   - 支持 IPP 打印功能
