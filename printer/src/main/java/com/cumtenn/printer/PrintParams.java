@@ -36,6 +36,8 @@ public class PrintParams {
     // 打印质量
     private Quality quality;
 
+    private String scaling;
+
     public void setCopies(int copies) {
         this.copies = copies;
     }
@@ -56,6 +58,7 @@ public class PrintParams {
         this.colorMode = builder.colorMode;
         this.orientation = builder.orientation;
         this.quality = builder.quality;
+        this.scaling = builder.scaling;
     }
 
     // Builder内部类
@@ -89,6 +92,8 @@ public class PrintParams {
 
         // 打印质量
         private Quality quality = Quality.Normal;
+
+        private String scaling = "auto";
 
         // 构造函数
         public Builder() {
@@ -154,6 +159,11 @@ public class PrintParams {
             return this;
         }
 
+        public Builder setScaling(String scaling) {
+            this.scaling = scaling;
+            return this;
+        }
+
         // 构建PrintParams实例
         public PrintParams build() {
             return new PrintParams(this);
@@ -201,6 +211,10 @@ public class PrintParams {
         return quality;
     }
 
+    public String getScaling() {
+        return scaling;
+    }
+
     @Override
     public String toString() {
         return "PrintParams{" +
@@ -208,11 +222,13 @@ public class PrintParams {
                 ", jobName='" + jobName + '\'' +
                 ", sides='" + sides + '\'' +
                 ", documentFormat='" + documentFormat + '\'' +
-                ", compression=" + compression +
+                ", compression='" + compression + '\'' +
                 ", media='" + media + '\'' +
                 ", range=" + range +
-                ", colorMode=" + colorMode +
+                ", colorMode='" + colorMode + '\'' +
                 ", orientation=" + orientation +
+                ", quality=" + quality +
+                ", scaling='" + scaling + '\'' +
                 '}';
     }
 }

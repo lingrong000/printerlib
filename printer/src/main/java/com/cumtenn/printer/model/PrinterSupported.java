@@ -15,6 +15,8 @@ public class PrinterSupported {
 
     private List<Integer> orientationList;
 
+    private List<String> scalingList;
+
     private boolean colorSupported;
 
     public List<String> getMediaSupportedList() {
@@ -73,6 +75,14 @@ public class PrinterSupported {
         this.orientationList = orientationList;
     }
 
+    public List<String> getScalingList() {
+        return scalingList;
+    }
+
+    public void setScalingList(List<String> scalingList) {
+        this.scalingList = scalingList;
+    }
+
     @Override
     public String toString() {
         return "PrinterSupported{" +
@@ -82,6 +92,7 @@ public class PrinterSupported {
                 ", compressList=" + compressList +
                 ", qualityList=" + qualityList +
                 ", orientationList=" + orientationList +
+                ", scalingList=" + scalingList +
                 ", colorSupported=" + colorSupported +
                 '}';
     }

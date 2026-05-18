@@ -1,6 +1,7 @@
 package com.cumtenn.printerlib;
 
 import android.Manifest;
+import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
@@ -8,6 +9,8 @@ import android.provider.Settings;
 import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
@@ -35,6 +38,8 @@ public class MainActivity extends AppCompatActivity {
     private ActivityMainBinding binding;
     private SharedViewModel sharedViewModel;
 
+    private ActivityResultLauncher<Intent> printerConnectLauncher;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -51,7 +56,28 @@ public class MainActivity extends AppCompatActivity {
 
         checkAndRequestPermissions();
         setupViewPager();
+        setupActivityResultLauncher();
         setupIpButton();
+    }
+
+    private void setupActivityResultLauncher() {
+        printerConnectLauncher = registerForActivityResult(
+                new ActivityResultContracts.StartActivityForResult(),
+                result -> {
+                    if (result.getResultCode() == RESULT_OK && result.getData() != null) {
+                        Printer printer = result.getData().getParcelableExtra("selected_printer");
+                        if (printer != null) {
+                            String ip = printer.getIp();
+                            binding.name.setText(printer.getName());
+                            binding.tvIp.setText(ip);
+                            sharedViewModel.setIp(ip);
+                            SnmpManager.getInstance().setIp(ip);
+                            IppManager.getInstance().setIp(ip);
+                            Toast.makeText(MainActivity.this, "已连接打印机: " + printer.getName() + " (" + ip + ")", Toast.LENGTH_SHORT).show();
+                        }
+                    }
+                }
+        );
     }
 
     private void setupViewPager() {
@@ -84,15 +110,8 @@ public class MainActivity extends AppCompatActivity {
 
     private void setupIpButton() {
         binding.btnSetIp.setOnClickListener(v -> {
-            String ip = binding.etIp.getText().toString().trim();
-            if (!ip.isEmpty()) {
-                sharedViewModel.setIp(ip);
-                SnmpManager.getInstance().setIp(ip);
-                IppManager.getInstance().setIp(ip);
-                Toast.makeText(MainActivity.this, "IP 设置成功: " + ip, Toast.LENGTH_SHORT).show();
-            } else {
-                Toast.makeText(MainActivity.this, "请输入有效的 IP 地址", Toast.LENGTH_SHORT).show();
-            }
+            Intent intent = new Intent(MainActivity.this, PrinterConnectActivity.class);
+            printerConnectLauncher.launch(intent);
         });
     }
 

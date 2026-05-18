@@ -232,6 +232,8 @@ open class IppPrinter(
     val outputBinSupported: List<String>
         get() = attributes.getValues("output-bin-supported")
 
+    val printScalingSupported: List<String>
+        get() = attributes.getValues("print-scaling-supported")
 
 
     val mediaSizeDefault: MediaSize

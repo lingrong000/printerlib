@@ -35,13 +35,10 @@ public class FileUtil {
                 throw new IOException("Empty PDF");
             }
 
-            // 计算需要分割成多少个部分
             int parts = (totalPages + CHUNK_PAGES - 1) / CHUNK_PAGES;
 
-            // 我们使用 PDFBox 的 Splitter，设置 splitAtPage
             Splitter splitter = new Splitter();
             splitter.setSplitAtPage(CHUNK_PAGES);
-            // split 返回每个子文档的 List<PDDocument>
             List<PDDocument> docs = splitter.split(document);
 
             String baseName = getBaseName(inputFile.getName()); // 不带扩展名

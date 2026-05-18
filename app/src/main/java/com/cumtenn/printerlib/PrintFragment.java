@@ -217,25 +217,16 @@ public class PrintFragment extends Fragment {
         PrintParams params = new PrintParams.Builder()
                 .setJobName("Test Print")
                 .setCopies(1)
-//                .setRange(new IntRange(1, 16))
+//                .setRange(new IntRange(3, 5))
                 .setSides("one-sided")
                 .setMedia("iso_a4_210x297mm") // iso_a4_210x297mm iso_a5_148x210mm
-                .setDocumentFormat("application/pdf")
+                .setDocumentFormat("application/pdf") //application/octet-stream application/pdf
                 .setColorMode("monochrome")
                 .setOrientation(Orientation.Portrait)
                 .setQuality(Quality.Normal)
                 .setCompression("none")
+                .setScaling("auto")
                 .build();
-
-        ippManager.getPrinterStatusAsync(requireContext(), new IppManager.PrinterStatusCallBack() {
-            @Override
-            public void onPrinterStatus(PrinterStatus status) {
-            }
-
-            @Override
-            public void onStatusError(String errorInfo) {
-            }
-        });
 
         ippManager.printFile(requireContext(), localFilePath, params, new IppManager.PrinterCallBack() {
             @Override

@@ -64,6 +64,10 @@ object TemplateAttributes {
     fun printScaling(keyword: String) =
         IppAttribute("print-scaling", Keyword, keyword)
 
+    @JvmStatic
+    fun printUrf(keyword: String) =
+        IppAttribute("urf", Keyword, keyword)
+
     @JvmStatic // input tray
     fun mediaColWithSource(mediaSource: MediaSource) =
         MediaCollection(source = mediaSource)

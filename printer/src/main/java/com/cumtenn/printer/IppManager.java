@@ -6,8 +6,10 @@ import static de.gmuth.ipp.attributes.TemplateAttributes.jobName;
 import static de.gmuth.ipp.attributes.TemplateAttributes.orientationRequested;
 import static de.gmuth.ipp.attributes.TemplateAttributes.pageRanges;
 import static de.gmuth.ipp.attributes.TemplateAttributes.printScaling;
+import static de.gmuth.ipp.attributes.TemplateAttributes.printUrf;
 
 import android.content.Context;
+import android.os.Environment;
 import android.util.Log;
 
 import androidx.annotation.Keep;
@@ -33,6 +35,7 @@ import de.gmuth.ipp.attributes.DocumentFormat;
 import de.gmuth.ipp.attributes.JobState;
 import de.gmuth.ipp.attributes.Media;
 import de.gmuth.ipp.attributes.MediaCollection;
+import de.gmuth.ipp.attributes.MediaMargin;
 import de.gmuth.ipp.attributes.MediaSize;
 import de.gmuth.ipp.attributes.Orientation;
 import de.gmuth.ipp.attributes.PrintQuality;
@@ -146,7 +149,7 @@ public class IppManager {
                     params.setRange(new IntRange(1, pages));
                 }
 
-                if (pages < FileUtil.CHUNK_PAGES) {
+                if (pages <= FileUtil.CHUNK_PAGES) {
                     if (!printSingleFile(context, file, params, callBack)) {
                         return;
                     }
@@ -183,7 +186,7 @@ public class IppManager {
         IppAttributeBuilder[] builders = new IppAttributeBuilder[]{
                 copies(params.getCopies()),
                 jobName(file.getName()),
-                printScaling("auto"),
+                printScaling(params.getScaling()),
                 pageRanges(params.getRange()),
                 orientationRequested(Orientation.fromInt(params.getOrientation().getCode())),
                 mediaCollection,
@@ -196,7 +199,7 @@ public class IppManager {
         IppPrinter ippPrinter = getIppPrinter();
         currentJob = ippPrinter.printJob(file, builders, null);
 
-        Log.i(TAG, "print start");
+        Log.i(TAG, "print start: " + params);
         callBack.onPrinterStart();
 
         final boolean[] canceled = {false};
@@ -206,6 +209,7 @@ public class IppManager {
             Level.INFO,
                 (state, printerState, stateReasons) -> {
                     if (state == JobState.Canceled || printerState == PrinterState.Stopped) {
+                        Log.i(TAG, "print error: " + stateReasons);
                         canceled[0] = true;
                         callBack.onPrinterError(PrinterReasonHelper.getDescriptionByReason(context, stateReasons));
                         return false;
@@ -213,7 +217,7 @@ public class IppManager {
                     return true;
                 }
         );
-        Log.i(TAG, "print finish: " + file.getName());
+        Log.i(TAG, "print finish: " + file.getName() + "-" + canceled[0]);
         return !canceled[0];
     }
 
@@ -318,6 +322,7 @@ public class IppManager {
         supported.setCompressList(ippPrinter.getCompressionSupported());
         supported.setQualityList(ippPrinter.getQualitySupported());
         supported.setOrientationList(ippPrinter.getOrientationSupported());
+        supported.setScalingList(ippPrinter.getPrintScalingSupported());
 
         return supported;
     }
